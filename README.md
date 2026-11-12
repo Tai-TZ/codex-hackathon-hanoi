@@ -19,6 +19,7 @@ App iOS viết bằng Expo / React Native gọi một backend Python. Backend ch
 |---|---|
 | Mobile | Expo SDK 58, React Native 0.88, TypeScript, Expo Router |
 | Tính năng thiết bị | Camera và thư viện ảnh, nhận dạng giọng nói, đọc văn bản thành giọng nói, thông báo cục bộ, lưu trữ cục bộ, rung |
+| Đồ họa và chuyển động | React Native Skia, Reanimated, linear gradient, glass effect (iOS 26), font Be Vietnam Pro |
 | Backend | Python 3.12, FastAPI, Pydantic |
 | AI agent | LangGraph (agent kiểu ReAct), LangChain |
 | Model | Google Gemini hoặc OpenAI, chọn bằng cấu hình |
@@ -95,6 +96,7 @@ Chạy ở thư mục gốc. Xem đầy đủ bằng `make help`.
 | Biến | Bắt buộc | Mô tả |
 |---|---|---|
 | `LLM_MODEL` | Có | Tên model. Bắt đầu bằng `gemini` (vd `gemini-3.1-flash-lite`) thì dùng Gemini, còn lại dùng OpenAI |
+| `LLM_FALLBACK_MODELS` | Không | Model dự phòng, cách nhau bằng dấu phẩy. Khi model chính lỗi hoặc quá tải, agent thử lần lượt các model này. Model nào chưa có API key thì bị bỏ qua |
 | `GOOGLE_API_KEY` | Khi dùng Gemini | Key từ Google AI Studio |
 | `OPENAI_API_KEY` | Khi dùng OpenAI | Key từ OpenAI Platform |
 | `APP_ENV` | Không | `development` (mặc định), `production`, `test`. Ở `production`, lỗi chi tiết không trả về cho client |
@@ -135,6 +137,7 @@ Không commit file `.env`. Chỉ commit `.env.example`.
 │   │       ├── state.py        State của agent
 │   │       └── tools/          Các tool agent được gọi
 │   └── tests/                  Test (dùng LLM giả, không tốn API)
+├── AGENTS.md                   Hướng dẫn cho coding agent (Codex…)
 └── Makefile                    Lệnh chung
 ```
 
@@ -142,7 +145,7 @@ Không commit file `.env`. Chỉ commit `.env.example`.
 
 | Method | Đường dẫn | Mô tả |
 |---|---|---|
-| `GET` | `/health` | Trạng thái backend, model đang dùng, đã có API key chưa |
+| `GET` | `/health` | Trạng thái backend, model đang dùng, model dự phòng, đã có API key chưa |
 | `POST` | `/api/v1/chat` | Gửi một tin nhắn cho agent |
 
 ```http
@@ -190,7 +193,13 @@ Giới hạn của Apple ID miễn phí: app hết hạn sau 7 ngày (build lạ
 
 ## Deploy backend
 
-Backend có sẵn `Dockerfile`, chạy được trên các dịch vụ hỗ trợ Docker (Render, Railway, Fly.io…). Khai báo các biến trong [`backend/.env`](#backendenv) ở phần cấu hình của dịch vụ và đặt `APP_ENV=production`.
+Backend có sẵn `Dockerfile` (thư mục gốc để build là `backend/`), chạy được trên các dịch vụ hỗ trợ Docker (Render, Railway, Fly.io…). Image chạy bằng user thường, đặt sẵn `APP_ENV=production` và nghe ở cổng trong biến `PORT` (mặc định 8000). Khai báo các biến trong [`backend/.env`](#backendenv) ở phần cấu hình của dịch vụ.
+
+Thử image trên máy:
+
+```bash
+docker build -t vcv-backend backend && docker run --rm -p 8000:8000 --env-file backend/.env vcv-backend
+```
 
 Một số gói miễn phí tự "ngủ" khi không có request, khiến request đầu tiên chậm vài chục giây. Gọi `/health` để đánh thức trước khi dùng.
 
@@ -210,6 +219,7 @@ Một số gói miễn phí tự "ngủ" khi không có request, khiến request
 | App báo "Không kết nối được backend" | Kiểm tra `make backend` đang chạy; điện thoại và Mac cùng mạng wifi; với bản Release, kiểm tra `EXPO_PUBLIC_API_URL` |
 | App báo backend chưa có API key | Điền key tương ứng với `LLM_MODEL` trong `backend/.env`, rồi khởi động lại backend |
 | Lỗi 401 từ model | Key không khớp nhà cung cấp: model `gemini-*` cần `GOOGLE_API_KEY`, còn lại cần `OPENAI_API_KEY` |
+| Agent trả lỗi 502, log có `503 UNAVAILABLE` hoặc hết thời gian chờ | Model đang quá tải. Khai báo `LLM_FALLBACK_MODELS` để agent tự chuyển model, hoặc đổi `LLM_MODEL` |
 | App đóng ngay khi mở camera hoặc micro | Thiếu câu xin quyền trong `app.json`; sửa rồi build lại native |
 | `pod install` báo lỗi encoding | Chạy `export LANG=en_US.UTF-8` rồi thử lại |
 | App trên iPhone không mở được nữa | Hết hạn 7 ngày của Apple ID miễn phí; chạy lại `make ios-device` |
