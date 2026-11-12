@@ -1,0 +1,8 @@
+# Thông tin nội bộ về hackathon, không đưa lên git
+hackathon-info/
+TRUOC-SU-KIEN.md
+
+.DS_Store
+.env
+.env.*
+!.env.example
