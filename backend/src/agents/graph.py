@@ -26,8 +26,12 @@ def build_graph(
     llm: BaseChatModel,
     tools: Sequence[BaseTool] = TOOLS,
     checkpointer: BaseCheckpointSaver | None = None,
+    fallback_llms: Sequence[BaseChatModel] = (),
 ) -> CompiledStateGraph:
+    """`fallback_llms`: các model thử lần lượt khi `llm` lỗi (quá tải, hết thời gian chờ…)."""
     llm_with_tools = llm.bind_tools(tools)
+    if fallback_llms:
+        llm_with_tools = llm_with_tools.with_fallbacks([fb.bind_tools(tools) for fb in fallback_llms])
 
     async def call_model(state: AgentState) -> dict:
         messages = [SystemMessage(SYSTEM_PROMPT), *state["messages"]]
@@ -46,4 +50,9 @@ def build_graph(
 def get_default_agent() -> CompiledStateGraph:
     # MemorySaver giữ lịch sử hội thoại trong RAM: mất khi restart server và
     # không chia sẻ giữa nhiều worker. Đủ cho demo; cần bền hơn thì đổi checkpointer.
-    return build_graph(get_llm(get_settings()), checkpointer=MemorySaver())
+    settings = get_settings()
+    return build_graph(
+        get_llm(settings),
+        checkpointer=MemorySaver(),
+        fallback_llms=[get_llm(settings, model) for model in settings.fallback_models],
+    )

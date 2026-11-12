@@ -28,4 +28,5 @@ async def health():
         "env": settings.app_env,
         "llm_configured": bool(settings.llm_api_key),
         "model": settings.llm_model,
+        "fallback_models": settings.fallback_models,
     }

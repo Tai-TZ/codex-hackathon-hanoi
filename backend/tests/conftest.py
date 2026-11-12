@@ -20,6 +20,13 @@ class FakeToolCallingModel(FakeMessagesListChatModel):
         return self
 
 
+class FailingModel(FakeToolCallingModel):
+    """LLM giả luôn lỗi, để thử cơ chế chuyển sang model dự phòng."""
+
+    def _generate(self, *args, **kwargs):
+        raise RuntimeError("503 UNAVAILABLE: model quá tải")
+
+
 def make_fake_agent(responses: Sequence[BaseMessage]):
     return build_graph(FakeToolCallingModel(responses=list(responses)), checkpointer=MemorySaver())
 
@@ -49,7 +56,7 @@ def use_agent():
 @pytest.fixture
 def no_api_key():
     app.dependency_overrides[get_settings] = lambda: Settings(
-        _env_file=None, llm_model="gpt-5-mini", openai_api_key="", google_api_key=""
+        _env_file=None, llm_model="gpt-5-mini", openai_api_key="", google_api_key="", llm_fallback_models=""
     )
 
 

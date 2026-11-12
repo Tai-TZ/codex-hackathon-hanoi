@@ -1,6 +1,9 @@
+import pytest
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from langgraph.checkpoint.memory import MemorySaver
 
-from tests.conftest import make_fake_agent, tool_call_message
+from src.agents.graph import build_graph
+from tests.conftest import FailingModel, FakeToolCallingModel, make_fake_agent, tool_call_message
 
 CONFIG = {"configurable": {"thread_id": "t1"}}
 
@@ -31,3 +34,24 @@ async def test_agent_remembers_earlier_turns_in_same_thread():
     result = await agent.ainvoke({"messages": [HumanMessage("Mình tên gì?")]}, CONFIG)
 
     assert [m.content for m in result["messages"]] == ["Mình tên Tài", "Chào Tài", "Mình tên gì?", "Bạn tên Tài"]
+
+
+async def test_agent_uses_fallback_model_when_primary_fails():
+    fallback = FakeToolCallingModel(
+        responses=[tool_call_message("calculate", {"expression": "7 * 8"}), AIMessage("Bằng 56")]
+    )
+    agent = build_graph(FailingModel(responses=[]), checkpointer=MemorySaver(), fallback_llms=[fallback])
+
+    result = await agent.ainvoke({"messages": [HumanMessage("7 * 8 = ?")]}, CONFIG)
+
+    assert result["messages"][-1].content == "Bằng 56"
+    assert [m.content for m in result["messages"] if isinstance(m, ToolMessage)] == ["56"]
+
+
+async def test_agent_raises_when_every_model_fails():
+    agent = build_graph(
+        FailingModel(responses=[]), checkpointer=MemorySaver(), fallback_llms=[FailingModel(responses=[])]
+    )
+
+    with pytest.raises(RuntimeError, match="quá tải"):
+        await agent.ainvoke({"messages": [HumanMessage("Chào")]}, CONFIG)
