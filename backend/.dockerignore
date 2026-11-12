@@ -13,3 +13,8 @@ eval/
 .dockerignore
 Dockerfile
 docker-compose.yml
+tests/
+pytest.ini
+ruff.toml
+Makefile
+data/
