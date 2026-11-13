@@ -30,6 +30,7 @@ Chạy `make check` ở thư mục gốc và sửa cho tới khi qua. Lệnh nà
 - Tạo model qua `src/services/llm.py`. Tên model bắt đầu bằng `gemini` dùng Google, còn lại dùng OpenAI; model dự phòng khai báo ở `LLM_FALLBACK_MODELS`.
 - Agent: prompt ở `src/agents/prompts.py`, tool ở `src/agents/tools/` (đăng ký trong `TOOLS`), luồng ở `src/agents/graph.py`.
 - Endpoint ở `src/api/routes.py`, schema ở `src/models/schemas.py`. Kiểm tra dữ liệu vào bằng Pydantic.
+- Database: Postgres qua `src/services/db.py`. Endpoint nhận kết nối bằng `Depends(get_db_conn)`, luôn dùng tham số `%s`, không ghép chuỗi SQL. Bảng mới khai báo trong `src/services/schema.sql`, chỉ dùng `CREATE TABLE IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS` (file chạy mỗi lần khởi động, server tự deploy khi merge). Không `DROP` hay đổi kiểu cột.
 - Mỗi tool và endpoint mới cần test trong `backend/tests/`. Test dùng LLM giả trong `tests/conftest.py`; không gọi API thật trong test.
 - Lỗi phải được log đầy đủ ở server; chỉ trả chi tiết lỗi cho client khi `APP_ENV=development`.
 - Thêm thư viện: ghi vào `requirements.txt` rồi `make -C backend install`.

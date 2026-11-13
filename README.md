@@ -21,6 +21,8 @@ App iOS viết bằng Expo / React Native gọi một backend Python. Backend ch
 | Tính năng thiết bị | Camera và thư viện ảnh, nhận dạng giọng nói, đọc văn bản thành giọng nói, thông báo cục bộ, lưu trữ cục bộ, rung |
 | Đồ họa và chuyển động | React Native Skia, Reanimated, linear gradient, glass effect (iOS 26), font Be Vietnam Pro |
 | Backend | Python 3.12, FastAPI, Pydantic |
+| Database | PostgreSQL 17 (Docker Compose), lưu lịch sử hội thoại và dữ liệu app |
+| Hạ tầng | Docker Compose trên PC nhà, Tailscale Funnel (HTTPS public), tự deploy từ `main`, GitHub Actions CI |
 | AI agent | LangGraph (agent kiểu ReAct), LangChain |
 | Model | Google Gemini hoặc OpenAI, chọn bằng cấu hình |
 | Chất lượng | pytest, Ruff, TypeScript strict, ESLint |
@@ -33,6 +35,7 @@ flowchart LR
     B --> C["AI agent<br/>(LangGraph)"]
     C -- "gọi model" --> D["Gemini / OpenAI"]
     C -- "gọi tool" --> E["Tools"]
+    B -- "lịch sử hội thoại, dữ liệu" --> F[("Postgres")]
 ```
 
 Agent chạy theo vòng lặp: model đọc hội thoại, quyết định trả lời luôn hay gọi tool; nếu gọi tool thì kết quả được đưa lại cho model, lặp đến khi có câu trả lời (tối đa 12 bước).
@@ -88,6 +91,13 @@ Chạy ở thư mục gốc. Xem đầy đủ bằng `make help`.
 | `make ios-sim` | Build và mở app trên simulator |
 | `make ios-device` | Build bản Release lên iPhone đang cắm vào Mac |
 | `make health` | Kiểm tra backend local |
+| `make db` / `make db-stop` | Bật / tắt Postgres trên máy (cổng 5433) |
+| `make db-psql` | Mở psql vào database |
+| `make db-backup` / `make db-restore FILE=…` | Sao lưu database vào `backups/` / nạp lại |
+| `make remote-health` | Kiểm tra backend public (URL trong `app/.env`) |
+| `make deploy` | Deploy ngay commit mới nhất lên server |
+| `make deploy-freeze` / `make deploy-unfreeze` | Tạm dừng / bật lại tự deploy |
+| `make remote-logs` | Xem log backend trên server |
 
 ## Biến môi trường
 
@@ -102,12 +112,16 @@ Chạy ở thư mục gốc. Xem đầy đủ bằng `make help`.
 | `APP_ENV` | Không | `development` (mặc định), `production`, `test`. Ở `production`, lỗi chi tiết không trả về cho client |
 | `CORS_ORIGINS` | Không | Danh sách origin, cách nhau bằng dấu phẩy. Mặc định `*` |
 | `LOG_LEVEL` | Không | `DEBUG`, `INFO` (mặc định), `WARNING`, `ERROR` |
+| `APP_TOKEN` | Trên server | Token dùng chung với app. Có giá trị thì `/api/v1/*` đòi header `X-App-Token` khớp. Bỏ trống khi dev |
+| `POSTGRES_PASSWORD` | Khi dùng Postgres | Mật khẩu Postgres của `docker-compose.yml`. Sinh bằng `openssl rand -hex 24` |
+| `DATABASE_URL` | Không | Bỏ trống thì lịch sử hội thoại lưu trong RAM. Dùng Postgres trên máy: `postgresql://app:<POSTGRES_PASSWORD>@localhost:5433/app` |
 
 ### `app/.env`
 
 | Biến | Bắt buộc | Mô tả |
 |---|---|---|
 | `EXPO_PUBLIC_API_URL` | Với bản Release | URL https của backend đã deploy. Bỏ trống khi dev |
+| `EXPO_PUBLIC_APP_TOKEN` | Khi gọi backend public | Khớp `APP_TOKEN` của server. Bỏ trống khi dev |
 
 Không commit file `.env`. Chỉ commit `.env.example`.
 
@@ -159,9 +173,9 @@ Content-Type: application/json
 { "response": "23 * 17 bằng 391.", "thread_id": "7bd3c4df…", "tools_used": ["calculate"] }
 ```
 
-Gửi lại `thread_id` ở request sau để agent nhớ ngữ cảnh. Lịch sử hội thoại hiện lưu trong bộ nhớ và mất khi khởi động lại backend.
+Gửi lại `thread_id` ở request sau để agent nhớ ngữ cảnh. Có `DATABASE_URL` thì lịch sử hội thoại lưu trong Postgres và còn sau khi khởi động lại backend; không có thì lưu trong RAM. `/health` cho biết đang dùng loại nào (`storage`) và commit nào đang chạy (`commit`).
 
-Mã lỗi: `422` dữ liệu gửi lên không hợp lệ, `502` agent lỗi hoặc vượt quá số bước, `503` backend chưa có API key.
+Mã lỗi: `401` thiếu hoặc sai `X-App-Token`, `422` dữ liệu gửi lên không hợp lệ, `502` agent lỗi hoặc vượt quá số bước, `503` backend chưa có API key hoặc mất kết nối database.
 
 ## Mở rộng agent
 
@@ -173,6 +187,8 @@ Mã lỗi: `422` dữ liệu gửi lên không hợp lệ, `502` agent lỗi ho�
 | Thêm dữ liệu vào state | `backend/src/agents/state.py` |
 | Thêm endpoint | `backend/src/api/routes.py` và schema trong `backend/src/models/schemas.py` |
 | Đổi model | `LLM_MODEL` trong `backend/.env` |
+| Thêm bảng database | `backend/src/services/schema.sql` (chỉ `CREATE TABLE IF NOT EXISTS`, chạy mỗi lần backend khởi động) |
+| Endpoint đọc/ghi database | Nhận kết nối qua `Depends(get_db_conn)` trong `backend/src/services/db.py` |
 
 Mỗi tool mới nên có test trong `backend/tests/`. Test agent dùng LLM giả (`tests/conftest.py`) để chạy nhanh và không tốn API.
 
@@ -193,15 +209,37 @@ Giới hạn của Apple ID miễn phí: app hết hạn sau 7 ngày (build lạ
 
 ## Deploy backend
 
-Backend có sẵn `Dockerfile` (thư mục gốc để build là `backend/`), chạy được trên các dịch vụ hỗ trợ Docker (Render, Railway, Fly.io…). Image chạy bằng user thường, đặt sẵn `APP_ENV=production` và nghe ở cổng trong biến `PORT` (mặc định 8000). Khai báo các biến trong [`backend/.env`](#backendenv) ở phần cấu hình của dịch vụ.
+Backend production chạy trên PC nhà của [winthebest](https://github.com/winthebest) (Windows + WSL2, Docker Desktop), mở ra internet bằng Tailscale Funnel.
 
-Thử image trên máy:
-
-```bash
-docker build -t vcv-backend backend && docker run --rm -p 8000:8000 --env-file backend/.env vcv-backend
+```mermaid
+flowchart LR
+    P["iPhone<br/>(mạng bất kỳ)"] -- "HTTPS + X-App-Token" --> F["Tailscale Funnel<br/>https://….ts.net"]
+    F --> B["backend<br/>(container)"] --> D[("db<br/>Postgres 17")]
+    G["GitHub main"] -. "mỗi phút: kéo, build,<br/>kiểm /health, lỗi thì rollback" .-> B
 ```
 
-Một số gói miễn phí tự "ngủ" khi không có request, khiến request đầu tiên chậm vài chục giây. Gọi `/health` để đánh thức trước khi dùng.
+- **Tự deploy:** merge vào `main` thì trong khoảng 1–3 phút server tự cập nhật. Commit chỉ sửa `app/` không làm backend khởi động lại. Trước mỗi lần deploy, database được sao lưu vào `backups/` trên server. Bản mới không qua `/health` thì server tự quay về bản cũ và bỏ qua commit đó.
+- **Trước giờ demo:** `make deploy-freeze` để không có gì tự deploy nữa; `make deploy-unfreeze` để bật lại.
+- **Log:** `make remote-logs`; lịch sử deploy ở `~/vcv-deploy.log` trên server.
+
+Các lệnh `deploy*` và `remote-logs` chạy qua SSH tới host `pc-linux` (Tailscale), nên chỉ máy có quyền SSH vào server mới dùng được. Người khác cứ merge vào `main`.
+
+### Dựng server từ đầu
+
+Trên máy Linux có Docker (WSL2 cần bật WSL integration trong Docker Desktop):
+
+```bash
+git clone https://github.com/Tai-TZ/codex-hackathon-hanoi.git ~/codex-hackathon-hanoi
+cd ~/codex-hackathon-hanoi
+cp backend/.env.example backend/.env && chmod 600 backend/.env
+# Điền: APP_ENV=production, model + key, POSTGRES_PASSWORD, APP_TOKEN
+make server-up                      # build và chạy backend + Postgres
+deploy/install-auto-deploy.sh       # timer tự deploy từ main
+```
+
+Sau đó mở Funnel trên máy chạy Tailscale (ở PC nhà là Windows): `tailscale funnel --bg 8000`, rồi xem URL bằng `tailscale funnel status`.
+
+Image cũng chạy được trên dịch vụ hỗ trợ Docker (Render, Railway, Fly.io…): build từ `backend/`, đặt sẵn `APP_ENV=production`, nghe ở cổng trong biến `PORT` (mặc định 8000), cần thêm một Postgres và `DATABASE_URL`.
 
 ## Quy trình làm việc của team
 
@@ -209,7 +247,7 @@ Một số gói miễn phí tự "ngủ" khi không có request, khiến request
 2. Làm trên nhánh riêng: `git checkout -b <tên>/<tính-năng>`.
 3. Sửa code, kiểm tra trên simulator hoặc iPhone.
 4. Trước khi commit: **`make check` phải qua**.
-5. Commit nhỏ, mô tả rõ; push và mở Pull Request vào `main`.
+5. Commit nhỏ, mô tả rõ; push và mở Pull Request vào `main`. GitHub Actions tự chạy lại các kiểm tra (kèm test với Postgres và build image) trên mỗi PR; chỉ merge khi CI xanh, vì merge là server tự deploy.
 6. Chỉ build lại native (`make ios-sim` / `make ios-device`) khi thêm thư viện native hoặc sửa `app.json`. Thêm thư viện app bằng `npx expo install <tên>` để đúng phiên bản SDK.
 
 ## Xử lý sự cố
@@ -223,3 +261,6 @@ Một số gói miễn phí tự "ngủ" khi không có request, khiến request
 | App đóng ngay khi mở camera hoặc micro | Thiếu câu xin quyền trong `app.json`; sửa rồi build lại native |
 | `pod install` báo lỗi encoding | Chạy `export LANG=en_US.UTF-8` rồi thử lại |
 | App trên iPhone không mở được nữa | Hết hạn 7 ngày của Apple ID miễn phí; chạy lại `make ios-device` |
+| App báo `Thiếu hoặc sai X-App-Token` | `EXPO_PUBLIC_APP_TOKEN` trong `app/.env` không khớp `APP_TOKEN` của server; sửa rồi build lại |
+| Backend không khởi động, báo không kết nối được Postgres | Chạy `make db`, hoặc để trống `DATABASE_URL` trong `backend/.env` để dùng RAM |
+| Merge rồi mà server không đổi | `make remote-health` xem `commit`; xem `~/vcv-deploy.log` trên server (có thể đang đóng băng hoặc commit bị rollback) |
