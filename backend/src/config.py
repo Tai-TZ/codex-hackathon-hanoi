@@ -26,6 +26,15 @@ class Settings(BaseSettings):
     app_env: Literal["development", "production", "test"] = "development"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     cors_origins: str = "*"
+    # Token dùng chung giữa app và backend. Có giá trị thì mọi request /api/v1/* phải gửi
+    # header X-App-Token khớp. Bỏ trống khi dev trên máy.
+    app_token: str = ""
+    # Commit đang chạy, Docker truyền vào lúc build. Hiện ở /health để biết bản nào đang deploy.
+    git_sha: str = "dev"
+
+    # Database. Bỏ trống thì lịch sử hội thoại lưu trong RAM (mất khi restart).
+    # Ví dụ: postgresql://app:<mật-khẩu>@localhost:5433/app
+    database_url: str = ""
 
     # LLM
     llm_model: str = "gpt-5-mini"

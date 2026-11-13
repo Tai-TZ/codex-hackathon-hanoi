@@ -1,0 +1,13 @@
+-- Bảng của sản phẩm. File này chạy mỗi lần backend khởi động (khi có DATABASE_URL),
+-- nên mọi câu lệnh phải chạy lại được nhiều lần mà không lỗi và không mất dữ liệu:
+--   CREATE TABLE IF NOT EXISTS ..., ALTER TABLE ... ADD COLUMN IF NOT EXISTS ...
+-- Không DROP hay đổi kiểu cột ở đây: server tự deploy khi merge vào main.
+--
+-- Ví dụ:
+-- CREATE TABLE IF NOT EXISTS notes (
+--     id BIGSERIAL PRIMARY KEY,
+--     thread_id TEXT NOT NULL,
+--     content TEXT NOT NULL,
+--     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+-- );
+-- CREATE INDEX IF NOT EXISTS notes_thread_id_idx ON notes (thread_id);

@@ -18,4 +18,6 @@ export interface HealthResponse {
   env: string;
   llm_configured: boolean;
   model: string;
+  storage?: 'postgres' | 'memory';
+  commit?: string;
 }

@@ -4,13 +4,11 @@ START -> agent -> (có tool call?) -> tools -> agent -> ... -> END
 """
 
 from collections.abc import Sequence
-from functools import lru_cache
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import SystemMessage
 from langchain_core.tools import BaseTool
 from langgraph.checkpoint.base import BaseCheckpointSaver
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
@@ -18,7 +16,7 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from src.agents.prompts import SYSTEM_PROMPT
 from src.agents.state import AgentState
 from src.agents.tools import TOOLS
-from src.config import get_settings
+from src.config import Settings
 from src.services.llm import get_llm
 
 
@@ -46,13 +44,11 @@ def build_graph(
     return graph.compile(checkpointer=checkpointer)
 
 
-@lru_cache
-def get_default_agent() -> CompiledStateGraph:
-    # MemorySaver giữ lịch sử hội thoại trong RAM: mất khi restart server và
-    # không chia sẻ giữa nhiều worker. Đủ cho demo; cần bền hơn thì đổi checkpointer.
-    settings = get_settings()
+def build_default_agent(settings: Settings, checkpointer: BaseCheckpointSaver) -> CompiledStateGraph:
+    """Agent dùng model trong cấu hình. `checkpointer` quyết định lịch sử hội thoại lưu ở đâu:
+    Postgres khi có DATABASE_URL, RAM (MemorySaver) khi không (xem lifespan trong src/main.py)."""
     return build_graph(
         get_llm(settings),
-        checkpointer=MemorySaver(),
+        checkpointer=checkpointer,
         fallback_llms=[get_llm(settings, model) for model in settings.fallback_models],
     )

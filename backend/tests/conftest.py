@@ -37,6 +37,8 @@ def tool_call_message(name: str, args: dict) -> AIMessage:
 
 @pytest.fixture(autouse=True)
 def clear_overrides():
+    # Test không đọc backend/.env của máy đang chạy (ví dụ APP_TOKEN trên server).
+    app.dependency_overrides[get_settings] = lambda: Settings(_env_file=None)
     yield
     app.dependency_overrides.clear()
 

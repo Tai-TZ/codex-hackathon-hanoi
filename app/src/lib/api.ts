@@ -6,6 +6,9 @@ const BACKEND_PORT = 8000;
 const CHAT_TIMEOUT_MS = 60_000;
 const HEALTH_TIMEOUT_MS = 5_000;
 
+/** Token khớp APP_TOKEN của backend public. Bỏ trống khi dev với backend trên máy. */
+const APP_TOKEN = process.env.EXPO_PUBLIC_APP_TOKEN ?? '';
+
 /**
  * Địa chỉ backend:
  * - Có EXPO_PUBLIC_API_URL (file .env) thì dùng nó. Bản Release bắt buộc phải có,
@@ -36,7 +39,9 @@ async function request<T>(path: string, timeoutMs: number, init?: RequestInit): 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(`${API_BASE}${path}`, { ...init, signal: controller.signal });
+    const headers = new Headers(init?.headers);
+    if (APP_TOKEN) headers.set('X-App-Token', APP_TOKEN);
+    const res = await fetch(`${API_BASE}${path}`, { ...init, headers, signal: controller.signal });
     if (!res.ok) throw new Error(await errorDetail(res));
     return (await res.json()) as T;
   } catch (e) {

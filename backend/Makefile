@@ -3,8 +3,9 @@
 VENV := .venv
 BIN := $(VENV)/bin
 
+# Chạy lại được nhiều lần: chỉ tạo venv khi chưa có, rồi cài thêm thư viện mới.
 install:
-	uv venv --python 3.12 $(VENV)
+	test -d $(VENV) || uv venv --python 3.12 $(VENV)
 	uv pip install --python $(BIN)/python -r requirements.txt
 	@test -f .env || cp .env.example .env
 

@@ -1,30 +1,53 @@
 import logging
+import secrets
 from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.errors import GraphRecursionError
 from langgraph.graph.state import CompiledStateGraph
 
-from src.agents.graph import get_default_agent
+from src.agents.graph import build_default_agent
 from src.config import Settings, get_settings
 from src.models.schemas import ChatRequest, ChatResponse
 
 logger = logging.getLogger(__name__)
-router = APIRouter()
+
+
+def require_app_token(
+    settings: Annotated[Settings, Depends(get_settings)],
+    x_app_token: Annotated[str | None, Header()] = None,
+) -> None:
+    """Backend public qua internet: chỉ app có token mới gọi được (khi APP_TOKEN được đặt)."""
+    if not settings.app_token:
+        return
+    if x_app_token is None or not secrets.compare_digest(x_app_token.encode(), settings.app_token.encode()):
+        raise HTTPException(status_code=401, detail="Thiếu hoặc sai X-App-Token.")
+
+
+router = APIRouter(dependencies=[Depends(require_app_token)])
 
 # Chặn agent gọi tool lặp vô hạn (mỗi vòng agent -> tools tốn 2 bước).
 MAX_AGENT_STEPS = 12
 
 
-def get_agent(settings: Annotated[Settings, Depends(get_settings)]) -> CompiledStateGraph:
+def get_agent(request: Request, settings: Annotated[Settings, Depends(get_settings)]) -> CompiledStateGraph:
     if not settings.llm_api_key:
         raise HTTPException(
             status_code=503,
             detail=f"Backend chưa có {settings.llm_api_key_name}. Điền key vào backend/.env rồi chạy lại server.",
         )
-    return get_default_agent()
+    state = request.app.state
+    agent = getattr(state, "agent", None)
+    if agent is None:
+        # Checkpointer được chọn lúc khởi động (src/main.py). Lifespan chưa chạy thì dùng RAM.
+        checkpointer = getattr(state, "checkpointer", None)
+        if checkpointer is None:
+            checkpointer = state.checkpointer = MemorySaver()
+        agent = state.agent = build_default_agent(settings, checkpointer)
+    return agent
 
 
 def _message_text(message: BaseMessage) -> str:
