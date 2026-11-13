@@ -3,6 +3,7 @@ hackathon-info/
 TRUOC-SU-KIEN.md
 
 .DS_Store
+backups/
 .env
 .env.*
 !.env.example

@@ -1,0 +1,43 @@
+# Postgres cho mọi máy dev, và backend chạy production trên server (profile "server").
+# Luôn gọi qua Makefile (`make db`, `make server-up`): Makefile truyền --env-file backend/.env
+# để lấy POSTGRES_PASSWORD.
+name: vcv-hackathon
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_DB: app
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Đặt POSTGRES_PASSWORD trong backend/.env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Chỉ mở cho chính máy này. Cổng 5433 để không đụng Postgres khác đang chạy ở 5432.
+    ports:
+      - "127.0.0.1:${DB_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    profiles: ["server"]
+    build:
+      context: ./backend
+      args:
+        GIT_SHA: ${GIT_SHA:-dev}
+    restart: unless-stopped
+    env_file: backend/.env
+    environment:
+      # Trong mạng của compose, backend gọi Postgres bằng tên service "db".
+      DATABASE_URL: postgresql://app:${POSTGRES_PASSWORD}@db:5432/app
+    ports:
+      - "${BACKEND_BIND:-127.0.0.1}:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

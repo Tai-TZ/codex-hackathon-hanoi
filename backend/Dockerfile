@@ -25,6 +25,10 @@ COPY . .
 RUN useradd -m appuser && mkdir -p /app/data && chown -R appuser:appuser /app
 USER appuser
 
+# Commit đang deploy, hiện ở /health. Đặt sau COPY để không làm mất cache các bước trên.
+ARG GIT_SHA=dev
+ENV GIT_SHA=$GIT_SHA
+
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
