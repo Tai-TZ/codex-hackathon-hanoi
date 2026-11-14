@@ -42,7 +42,7 @@ class Settings(BaseSettings):
 
     # Hỏi Con
     db_path: str = "data/hoicon.db"  # tương đối so với thư mục backend
-    child_name: str = "Tiển"
+    child_name: str = ""  # tên người con, chỉ lưu kèm câu trả lời; giao diện gọi chung là "con"
     parent_title: str = "mẹ"
 
     # Telegram: bot báo cho người con. TELEGRAM_CHAT_ID có thể là nhiều ID cách nhau bằng dấu phẩy.

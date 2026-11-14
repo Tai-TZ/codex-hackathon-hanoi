@@ -9,7 +9,7 @@ import { ProcessingView } from '@/components/parent/processing';
 import { ResultView } from '@/components/parent/result';
 import { SonAvatar } from '@/components/son-avatar';
 import { BigButton, Txt } from '@/components/ui';
-import { CHILD_NAME, CHILD_PHONE, FAMILY_ID } from '@/constants/family';
+import { CHILD_PHONE, FAMILY_ID } from '@/constants/family';
 import { Colors, FontSize, Spacing } from '@/constants/theme';
 import { ask } from '@/lib/api';
 import { pickPhoto } from '@/lib/photo';
@@ -123,7 +123,7 @@ export default function ParentScreen() {
             {stage.question && (
               <BigButton label="Thử lại" icon="arrow.clockwise" height={110} fontSize={30} onPress={() => submit(stage.question!, threadId)} />
             )}
-            <BigButton label={`Gọi con ${CHILD_NAME}`} icon="phone.fill" tone="paper" height={84} onPress={() => call(CHILD_PHONE)} />
+            <BigButton label="Gọi con" icon="phone.fill" tone="paper" height={84} onPress={() => call(CHILD_PHONE)} />
             <BigButton label="Về màn hình chính" tone="paper" height={76} onPress={goHome} />
           </View>
         </View>

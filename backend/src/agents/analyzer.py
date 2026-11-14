@@ -112,7 +112,7 @@ def build_messages(text: str | None, image: bytes | None, history: list[dict], p
         b64 = base64.b64encode(image).decode()
         parts.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}})
     return [
-        SystemMessage(ASK_PROMPT.format(parent=parent_title, child=get_settings().child_name)),
+        SystemMessage(ASK_PROMPT.format(parent=parent_title)),
         HumanMessage(content=parts),
     ]
 

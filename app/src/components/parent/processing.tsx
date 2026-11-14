@@ -4,7 +4,6 @@ import { StyleSheet, View } from 'react-native';
 
 import { SonAvatar } from '@/components/son-avatar';
 import { BigButton, Txt } from '@/components/ui';
-import { CHILD_NAME } from '@/constants/family';
 import { Colors, FontSize, riso, Spacing } from '@/constants/theme';
 import { say } from '@/lib/speak';
 
@@ -59,7 +58,7 @@ export function ProcessingView({
       {/* Chờ lâu thì cho mẹ lối ra, không để mẹ kẹt ở màn hình chờ. */}
       {slow && (
         <View style={styles.buttons}>
-          <BigButton label={`Gọi con ${CHILD_NAME}`} icon="phone.fill" tone="paper" height={84} onPress={onCall} />
+          <BigButton label="Gọi con" icon="phone.fill" tone="paper" height={84} onPress={onCall} />
           <BigButton label="Thôi, quay lại" icon="arrow.uturn.left" tone="paper" height={76} onPress={onCancel} />
         </View>
       )}

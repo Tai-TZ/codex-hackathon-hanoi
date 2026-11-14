@@ -101,7 +101,7 @@ export default function ChildScreen() {
             Hỏi Con
           </Txt>
           <Txt size={FontSize.small} color={Colors.textMuted}>
-            {CHILD_NAME} đang theo dõi {PARENT_NAME}
+            Đang theo dõi {PARENT_NAME}
           </Txt>
         </View>
         <BigButton label="Gọi mẹ" icon="phone.fill" tone="paper" height={48} fontSize={FontSize.body} onPress={() => call(PARENT_PHONE)} />

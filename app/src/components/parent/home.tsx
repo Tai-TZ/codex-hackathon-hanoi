@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { SonAvatar } from '@/components/son-avatar';
 import { BigButton, Txt } from '@/components/ui';
-import { CHILD_NAME, PARENT_NAME } from '@/constants/family';
+import { PARENT_NAME } from '@/constants/family';
 import { Colors, FontSize, Spacing } from '@/constants/theme';
 import { say } from '@/lib/speak';
 
@@ -48,7 +48,7 @@ export function ParentHome({
         <BigButton label="Nói với con" icon="mic.fill" height={84} fontSize={28} onPress={onSpeak} />
         <BigButton label="Chụp ảnh cho con xem" icon="camera.fill" tone="soft" height={76} fontSize={24} onPress={onCamera} />
         <View style={styles.row}>
-          <BigButton label={`Gọi con ${CHILD_NAME}`} icon="phone.fill" tone="paper" height={64} fontSize={20} style={styles.half} onPress={onCall} />
+          <BigButton label="Gọi con" icon="phone.fill" tone="paper" height={64} fontSize={20} style={styles.half} onPress={onCall} />
           <BigButton label="Ảnh có sẵn" icon="photo.fill" tone="paper" height={64} fontSize={20} style={styles.half} onPress={onLibrary} />
         </View>
       </View>

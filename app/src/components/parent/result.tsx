@@ -3,7 +3,6 @@ import { type ComponentRef, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { BigButton, Card, Txt } from '@/components/ui';
-import { CHILD_NAME } from '@/constants/family';
 import { Colors, FontSize, Radius, RiskTheme, Spacing } from '@/constants/theme';
 import { confirmPrescription } from '@/lib/api';
 import { say } from '@/lib/speak';
@@ -14,7 +13,7 @@ function spokenText(event: AskEvent): string {
   const parts = [event.risk === 'red' ? `Mẹ ơi, nguy hiểm. ${event.title}` : event.title];
   if (event.actions.length) parts.push(`Mẹ nhớ: ${event.actions.join('. ')}`);
   parts.push(event.answer);
-  if (event.family_notified) parts.push(`Con ${CHILD_NAME} đã được báo`);
+  if (event.family_notified) parts.push('Con đã được báo');
   return parts.join('. ');
 }
 
@@ -91,7 +90,7 @@ export function ResultView({
           {event.family_notified && (
             <Card color={Colors.primarySoft} shadow={Colors.coral}>
               <Txt size={FontSize.parentBody} weight="bold" color={Colors.primary}>
-                ✓ Con {CHILD_NAME} đã được báo. Mẹ chờ con trả lời nhé.
+                ✓ Con đã được báo. Mẹ chờ con trả lời nhé.
               </Txt>
             </Card>
           )}
@@ -117,7 +116,7 @@ export function ResultView({
 
       <View style={styles.buttons}>
         <BigButton
-          label={`Gọi con ${CHILD_NAME}`}
+          label="Gọi con"
           icon="phone.fill"
           tone={isRed ? 'danger' : 'paper'}
           height={isRed ? 100 : 76}
@@ -221,7 +220,7 @@ function PrescriptionBlock({ eventId, prescription }: { eventId: string; prescri
           ))}
           {result.needs_child.length > 0 && (
             <Txt size={FontSize.parentBody} color={Colors.warnText}>
-              Mấy chỗ này mẹ để con {CHILD_NAME} xem giúp nhé: {result.needs_child.join('; ')}
+              Mấy chỗ này mẹ để con xem giúp nhé: {result.needs_child.join('; ')}
             </Txt>
           )}
         </View>

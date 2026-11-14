@@ -122,10 +122,10 @@ async def test_follow_up_question_sees_thread_history(client, store, telegram):
 
 
 async def test_reply_round_trip(client, store):
-    sent = (await client.post("/api/v1/reply", json={"event_id": "e1", "text": "Con ổn", "from_name": "Tiển"})).json()
+    sent = (await client.post("/api/v1/reply", json={"event_id": "e1", "text": "Con ổn", "from_name": "con"})).json()
     assert sent["ok"] is True
     replies = (await client.get("/api/v1/replies?after=0")).json()["replies"]
-    assert [(r["event_id"], r["text"], r["from_name"]) for r in replies] == [("e1", "Con ổn", "Tiển")]
+    assert [(r["event_id"], r["text"], r["from_name"]) for r in replies] == [("e1", "Con ổn", "con")]
     assert (await client.get(f"/api/v1/replies?after={sent['id']}")).json() == {"replies": []}
 
 

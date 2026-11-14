@@ -18,7 +18,7 @@ const POLL_MS = 3000;
 const FRESH_MS = 10 * 60 * 1000;
 
 function spoken(reply: ChildReply): string {
-  return `Con ${reply.from_name} vừa trả lời: ${reply.text}`;
+  return `Con vừa trả lời: ${reply.text}`;
 }
 
 /**
@@ -85,14 +85,14 @@ export function ChildReplyOverlay() {
         <View style={styles.head}>
           <SonAvatar size={96} mood="idle" />
           <Txt size={FontSize.parentLarge} weight="bold" color={Colors.primary} style={styles.headText}>
-            Con {reply.from_name} vừa trả lời:
+            Con vừa trả lời:
           </Txt>
         </View>
         <Txt size={32} weight="bold">
           “{reply.text}”
         </Txt>
         <BigButton label="Nghe lại" icon="speaker.wave.2.fill" height={84} onPress={() => say(spoken(reply))} />
-        <BigButton label={`Gọi con ${reply.from_name}`} icon="phone.fill" tone="paper" height={76} onPress={() => call(CHILD_PHONE)} />
+        <BigButton label="Gọi con" icon="phone.fill" tone="paper" height={76} onPress={() => call(CHILD_PHONE)} />
         <BigButton
           label="Đóng"
           tone="paper"
