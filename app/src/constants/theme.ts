@@ -1,53 +1,36 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://unistyl.es/), etc.
- */
+/** Phong cách đã chốt: giấy kem, nét mực, in riso hai màu (xanh ngọc + cam san hô). */
+import type { ViewStyle } from 'react-native';
 
-import { Platform } from 'react-native';
+import type { Risk } from '@/types/hoicon';
 
 export const Colors = {
-  light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
-  },
-  dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
-  },
+  bg: '#FBF6EE',
+  surface: '#FFFFFF',
+  text: '#1D2B3A',
+  textMuted: '#5B514A',
+  primary: '#0B6E69',
+  primarySoft: '#DDF1EE',
+  teal: '#8ED6CC',
+  coral: '#FF9E80',
+  coralSoft: '#FFE7DD',
+  danger: '#B42318',
+  dangerSoft: '#FDECEC',
+  dangerText: '#9F1D1D',
+  warn: '#B25E09',
+  warnSoft: '#FFF1CC',
+  warnText: '#6B4500',
+  safe: '#0B6E69',
+  safeSoft: '#E1F3EA',
+  safeText: '#0B4F4B',
+  white: '#FFFFFF',
+  overlay: 'rgba(29, 43, 58, 0.55)',
 } as const;
 
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
-
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
-  },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
-  },
-});
+export const Fonts = {
+  regular: 'BeVietnamPro_500Medium',
+  semibold: 'BeVietnamPro_600SemiBold',
+  bold: 'BeVietnamPro_800ExtraBold',
+} as const;
 
 export const Spacing = {
   half: 2,
@@ -59,4 +42,32 @@ export const Spacing = {
   six: 64,
 } as const;
 
-export const MaxContentWidth = 800;
+export const FontSize = {
+  small: 14,
+  body: 17,
+  parentBody: 22,
+  parentLarge: 26,
+  heading: 28,
+  title: 36,
+} as const;
+
+export const Radius = { card: 20, button: 22, pill: 999 } as const;
+
+/** Viền mực + bóng cứng lệch 3px, không mờ (kiểu in riso). */
+export function riso(shadowColor: string = Colors.primary): ViewStyle {
+  return {
+    borderWidth: 2,
+    borderColor: Colors.text,
+    borderRadius: Radius.card,
+    shadowColor,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+  };
+}
+
+export const RiskTheme: Record<Risk, { label: string; solid: string; soft: string; text: string }> = {
+  red: { label: 'NGUY HIỂM', solid: Colors.danger, soft: Colors.dangerSoft, text: Colors.dangerText },
+  yellow: { label: 'CẦN CHÚ Ý', solid: Colors.warn, soft: Colors.warnSoft, text: Colors.warnText },
+  green: { label: 'AN TOÀN', solid: Colors.safe, soft: Colors.safeSoft, text: Colors.safeText },
+};

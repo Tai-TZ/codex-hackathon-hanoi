@@ -1,10 +1,15 @@
 import Constants from 'expo-constants';
 
+import { photoBase64 } from '@/lib/photo';
+
 import type { ChatResponse, HealthResponse } from '@/types/chat';
+import type { AskEvent, ChildReply, ConfirmResponse } from '@/types/hoicon';
 
 const BACKEND_PORT = 8000;
 const CHAT_TIMEOUT_MS = 60_000;
 const HEALTH_TIMEOUT_MS = 5_000;
+const ASK_TIMEOUT_MS = 90_000;
+const POLL_TIMEOUT_MS = 8_000;
 
 /**
  * Địa chỉ backend:
@@ -40,11 +45,11 @@ async function request<T>(path: string, timeoutMs: number, init?: RequestInit): 
     if (!res.ok) throw new Error(await errorDetail(res));
     return (await res.json()) as T;
   } catch (e) {
-    if (e instanceof Error && e.name === 'AbortError') {
-      throw new Error('Backend phản hồi quá lâu, thử lại sau.');
+    if (controller.signal.aborted || (e instanceof Error && e.name === 'AbortError')) {
+      throw new Error('Mạng đang chậm, chưa có câu trả lời. Bấm thử lại nhé.');
     }
     if (e instanceof TypeError) {
-      throw new Error(`Không kết nối được backend tại ${API_BASE}`);
+      throw new Error(`Chưa kết nối được máy chủ (${API_BASE}). Kiểm tra mạng rồi thử lại nhé.`);
     }
     throw e;
   } finally {
@@ -62,4 +67,77 @@ export function sendMessage(message: string, threadId: string | null): Promise<C
 
 export function getHealth(): Promise<HealthResponse> {
   return request<HealthResponse>('/health', HEALTH_TIMEOUT_MS);
+}
+
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
+
+/** Gửi ảnh hoặc chữ cho agent. `imageUri` là đường dẫn ảnh JPEG trên máy. */
+export function ask(input: {
+  imageUri?: string;
+  text?: string;
+  familyId: string;
+  threadId?: string | null;
+}): Promise<AskEvent> {
+  const imageBase64 = input.imageUri ? photoBase64(input.imageUri) : undefined;
+  if (input.imageUri && !imageBase64) {
+    return Promise.reject(new Error('Con chưa đọc được ảnh. Mẹ chụp lại giúp con nhé.'));
+  }
+  return request<AskEvent>('/api/v1/ask-json', ASK_TIMEOUT_MS, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      image_base64: imageBase64 ?? null,
+      text: input.text ?? null,
+      family_id: input.familyId,
+      thread_id: input.threadId ?? null,
+    }),
+  });
+}
+
+export async function getEvents(familyId: string): Promise<AskEvent[]> {
+  const data = await request<{ events: AskEvent[] }>(
+    `/api/v1/events?family_id=${encodeURIComponent(familyId)}`,
+    POLL_TIMEOUT_MS,
+  );
+  return data.events;
+}
+
+export function postReply(input: {
+  familyId: string;
+  eventId: string;
+  text: string;
+  fromName: string;
+}): Promise<{ ok: boolean; id: number }> {
+  return request('/api/v1/reply', POLL_TIMEOUT_MS, {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({
+      family_id: input.familyId,
+      event_id: input.eventId,
+      text: input.text,
+      from_name: input.fromName,
+    }),
+  });
+}
+
+export async function getReplies(familyId: string, after: number): Promise<ChildReply[]> {
+  const data = await request<{ replies: ChildReply[] }>(
+    `/api/v1/replies?family_id=${encodeURIComponent(familyId)}&after=${after}`,
+    POLL_TIMEOUT_MS,
+  );
+  return data.replies;
+}
+
+export function confirmPrescription(eventId: string, answers: Record<string, string>): Promise<ConfirmResponse> {
+  return request<ConfirmResponse>('/api/v1/confirm', ASK_TIMEOUT_MS, {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ event_id: eventId, answers }),
+  });
+}
+
+/** Ghép đường dẫn ảnh tương đối của backend thành địa chỉ đầy đủ. */
+export function imageUrl(path: string | null): string | null {
+  if (!path) return null;
+  return path.startsWith('http') ? path : `${API_BASE}${path.startsWith('/') ? '' : '/'}${path}`;
 }
