@@ -27,7 +27,7 @@ Chạy `make check` ở thư mục gốc và sửa cho tới khi qua. Lệnh nà
 
 - Chạy lệnh Python qua môi trường ảo: `backend/.venv/bin/python`, `backend/.venv/bin/pytest`.
 - Cấu hình đọc từ `backend/.env` qua `src/config.py`. Thêm biến mới thì thêm vào `Settings` và `backend/.env.example`. Không đọc `os.environ` trực tiếp.
-- Tạo model qua `src/services/llm.py`. Tên model bắt đầu bằng `gemini` dùng Google, còn lại dùng OpenAI; model dự phòng khai báo ở `LLM_FALLBACK_MODELS`.
+- Tạo model qua `src/services/llm.py`. Tên model bắt đầu bằng `gemini` dùng Google, bắt đầu bằng `claude` dùng Anthropic, còn lại dùng OpenAI; model dự phòng khai báo ở `LLM_FALLBACK_MODELS`.
 - Agent: prompt ở `src/agents/prompts.py`, tool ở `src/agents/tools/` (đăng ký trong `TOOLS`), luồng ở `src/agents/graph.py`.
 - Endpoint ở `src/api/routes.py`, schema ở `src/models/schemas.py`. Kiểm tra dữ liệu vào bằng Pydantic.
 - Mỗi tool và endpoint mới cần test trong `backend/tests/`. Test dùng LLM giả trong `tests/conftest.py`; không gọi API thật trong test.

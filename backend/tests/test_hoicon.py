@@ -196,3 +196,24 @@ async def test_racing_analyzer_raises_when_all_models_fail():
 
     with pytest.raises(RuntimeError):
         await RacingAnalyzer([RunnableLambda(boom), RunnableLambda(boom)], stagger=0.01).ainvoke([])
+
+
+def test_claude_models_use_native_structured_output():
+    from langchain_anthropic import ChatAnthropic
+
+    from src.agents.analyzer import structured
+
+    llm = ChatAnthropic(model="claude-haiku-5-5", api_key="test-key")
+    seen = {}
+    original = ChatAnthropic.with_structured_output
+
+    def spy(self, schema, **kwargs):
+        seen.update(kwargs)
+        return original(self, schema, **kwargs)
+
+    ChatAnthropic.with_structured_output = spy
+    try:
+        structured(llm, "claude-haiku-5-5")
+    finally:
+        ChatAnthropic.with_structured_output = original
+    assert seen == {"method": "json_schema"}

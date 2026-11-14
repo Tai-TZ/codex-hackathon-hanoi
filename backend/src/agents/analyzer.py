@@ -12,12 +12,13 @@ from functools import lru_cache
 from typing import Literal
 from zoneinfo import ZoneInfo
 
+from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import Runnable
 from pydantic import BaseModel, Field
 
 from src.agents.prompts import ASK_PROMPT
-from src.config import get_settings
+from src.config import get_settings, provider_for
 from src.services.llm import get_llm
 
 logger = logging.getLogger(__name__)
@@ -80,11 +81,20 @@ class RacingAnalyzer:
                 task.cancel()
 
 
+def structured(llm: BaseChatModel, model: str) -> Runnable:
+    """Ép model trả về đúng khuôn Analysis."""
+    if provider_for(model) == "anthropic":
+        # Các model Claude mới từ chối kiểu ép gọi tool (cách mặc định của LangChain),
+        # nên dùng structured outputs gốc của API.
+        return llm.with_structured_output(Analysis, method="json_schema")
+    return llm.with_structured_output(Analysis)
+
+
 @lru_cache
 def get_analyzer() -> RacingAnalyzer:
     settings = get_settings()
     names = [settings.llm_model, *settings.fallback_models]
-    models = [get_llm(settings, name).with_structured_output(Analysis) for name in names]
+    models = [structured(get_llm(settings, name), name) for name in names]
     return RacingAnalyzer(models, settings.llm_stagger_seconds)
 
 

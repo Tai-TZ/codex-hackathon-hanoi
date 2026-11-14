@@ -44,3 +44,21 @@ def test_fallback_models_without_an_api_key_are_skipped():
 
 def test_no_fallback_models_by_default():
     assert make_settings(llm_model="gpt-5-mini").fallback_models == []
+
+
+def test_claude_model_uses_anthropic_key():
+    settings = make_settings(llm_model="claude-haiku-5-5", anthropic_api_key="anthropic-key")
+
+    assert settings.llm_provider == "anthropic"
+    assert settings.llm_api_key == "anthropic-key"
+    assert settings.llm_api_key_name == "ANTHROPIC_API_KEY"
+
+
+def test_claude_fallbacks_need_an_anthropic_key():
+    without_key = make_settings(llm_model="gemini-3.1-flash-lite", llm_fallback_models="claude-haiku-5-5")
+    with_key = make_settings(
+        llm_model="gemini-3.1-flash-lite", llm_fallback_models="claude-haiku-5-5", anthropic_api_key="anthropic-key"
+    )
+
+    assert without_key.fallback_models == []
+    assert with_key.fallback_models == ["claude-haiku-5-5"]

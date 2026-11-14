@@ -6,12 +6,16 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 
-Provider = Literal["openai", "google"]
+Provider = Literal["openai", "google", "anthropic"]
 
 
 def provider_for(model: str) -> Provider:
-    """Model tên bắt đầu bằng "gemini" dùng Google, còn lại dùng OpenAI."""
-    return "google" if model.startswith("gemini") else "openai"
+    """Tên bắt đầu bằng "gemini" dùng Google, "claude" dùng Anthropic, còn lại dùng OpenAI."""
+    if model.startswith("gemini"):
+        return "google"
+    if model.startswith("claude"):
+        return "anthropic"
+    return "openai"
 
 
 class Settings(BaseSettings):
@@ -34,6 +38,7 @@ class Settings(BaseSettings):
     llm_fallback_models: str = ""
     openai_api_key: str = ""
     google_api_key: str = ""
+    anthropic_api_key: str = ""
     # Để ngắn: model chính treo thì chuyển sang model dự phòng nhanh.
     llm_timeout_seconds: float = 25.0
     llm_max_retries: int = 1
@@ -54,7 +59,8 @@ class Settings(BaseSettings):
         return [int(x) for x in (c.strip() for c in self.telegram_chat_id.split(",")) if x.lstrip("-").isdigit()]
 
     def api_key_for(self, model: str) -> str:
-        return self.google_api_key if provider_for(model) == "google" else self.openai_api_key
+        keys = {"google": self.google_api_key, "anthropic": self.anthropic_api_key, "openai": self.openai_api_key}
+        return keys[provider_for(model)]
 
     @property
     def llm_provider(self) -> Provider:
@@ -62,7 +68,8 @@ class Settings(BaseSettings):
 
     @property
     def llm_api_key_name(self) -> str:
-        return "GOOGLE_API_KEY" if self.llm_provider == "google" else "OPENAI_API_KEY"
+        names = {"google": "GOOGLE_API_KEY", "anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY"}
+        return names[self.llm_provider]
 
     @property
     def llm_api_key(self) -> str:

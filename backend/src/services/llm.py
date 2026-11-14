@@ -18,6 +18,18 @@ def get_llm(settings: Settings, model: str | None = None) -> BaseChatModel:
             max_retries=settings.llm_max_retries,
         )
 
+    if provider_for(model) == "anthropic":
+        from langchain_anthropic import ChatAnthropic
+
+        # Không đặt temperature: các model Claude mới từ chối tham số lấy mẫu khác mặc định.
+        return ChatAnthropic(
+            model=model,
+            api_key=api_key,
+            timeout=settings.llm_timeout_seconds,
+            max_retries=settings.llm_max_retries,
+            max_tokens=4096,
+        )
+
     from langchain_openai import ChatOpenAI
 
     return ChatOpenAI(
