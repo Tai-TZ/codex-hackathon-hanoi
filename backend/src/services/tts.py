@@ -35,9 +35,18 @@ def pcm_to_wav(pcm: bytes) -> bytes:
 
 
 class TtsService:
-    def __init__(self, api_key: str, model: str, voice: str, timeout: float, client: httpx.AsyncClient | None = None):
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        voice: str,
+        timeout: float,
+        client: httpx.AsyncClient | None = None,
+        fallback_models: list[str] | None = None,
+    ):
         self._api_key = api_key
         self.model = model
+        self.models = list(dict.fromkeys([model, *(fallback_models or [])]))
         self.voice = voice
         self._client = client or httpx.AsyncClient(timeout=timeout)
         # mã câu -> việc đang tạo hoặc đã tạo xong; hai lần hỏi cùng một câu chỉ gọi Gemini một lần.
@@ -69,8 +78,19 @@ class TtsService:
         return task.result()
 
     async def _generate(self, text: str) -> bytes:
+        """Thử lần lượt các model: model hết hạn mức (429) hay quá tải thì dùng model kế tiếp."""
+        last_error: Exception | None = None
+        for model in self.models:
+            try:
+                return await self._call(model, text)
+            except Exception as e:
+                last_error = e
+                logger.warning("TTS %s lỗi (%s), thử model kế tiếp", model, e)
+        raise last_error or RuntimeError("Chưa cấu hình model TTS")
+
+    async def _call(self, model: str, text: str) -> bytes:
         response = await self._client.post(
-            API_URL.format(model=self.model),
+            API_URL.format(model=model),
             headers={"x-goog-api-key": self._api_key},
             json={
                 "contents": [{"parts": [{"text": text}]}],
@@ -88,4 +108,11 @@ class TtsService:
 @lru_cache
 def get_tts() -> TtsService:
     settings = get_settings()
-    return TtsService(settings.google_api_key, settings.tts_model, settings.tts_voice, settings.tts_timeout_seconds)
+    fallbacks = [name.strip() for name in settings.tts_fallback_models.split(",") if name.strip()]
+    return TtsService(
+        settings.google_api_key,
+        settings.tts_model,
+        settings.tts_voice,
+        settings.tts_timeout_seconds,
+        fallback_models=fallbacks,
+    )

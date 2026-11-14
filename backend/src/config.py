@@ -52,6 +52,8 @@ class Settings(BaseSettings):
     # Hỏi Con: giọng đọc tự nhiên bằng Gemini TTS (dùng GOOGLE_API_KEY). Bỏ trống TTS_MODEL thì app dùng giọng của máy.
     tts_model: str = "gemini-3.8-flash-lite-tts"
     tts_voice: str = "Charon"
+    # Model TTS dự phòng (mỗi model có hạn mức riêng): model trước báo quá tải hay hết hạn mức thì thử model sau.
+    tts_fallback_models: str = "gemini-3.8-flash-tts,gemini-2.5-flash-preview-tts"
     tts_timeout_seconds: float = 20.0
 
     # Hỏi Con

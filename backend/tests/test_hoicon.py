@@ -283,3 +283,33 @@ async def test_tts_reports_failure_so_app_falls_back(client):
 
     app.dependency_overrides[get_tts] = lambda: TtsService("", "tts-model", "Charon", 5)
     assert (await client.post("/api/v1/tts", json={"text": "Chào mẹ"})).status_code == 503
+
+
+async def test_tts_uses_next_model_when_first_is_rate_limited(client):
+    import base64
+
+    import httpx
+
+    from src.services.tts import TtsService, get_tts
+
+    used: list = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        used.append(request.url.path.split("/")[-1])
+        if "het-han-muc" in request.url.path:
+            return httpx.Response(429, json={"error": "quota"})
+        pcm = base64.b64encode(b"\x00\x01" * 100).decode()
+        return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"inlineData": {"data": pcm}}]}}]})
+
+    service = TtsService(
+        "key",
+        "het-han-muc",
+        "Charon",
+        5,
+        client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+        fallback_models=["du-phong"],
+    )
+    app.dependency_overrides[get_tts] = lambda: service
+
+    assert (await client.post("/api/v1/tts", json={"text": "Chào mẹ"})).status_code == 200
+    assert used == ["het-han-muc:generateContent", "du-phong:generateContent"]
