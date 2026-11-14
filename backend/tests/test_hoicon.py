@@ -3,7 +3,7 @@ import asyncio
 import pytest
 from langchain_core.runnables import RunnableLambda
 
-from src.agents.analyzer import Analysis, DrugItem, DrugQuestion, RacingAnalyzer
+from src.agents.analyzer import Analysis, DrugItem, DrugQuestion, RacingAnalyzer, RoutedAnalyzer, build_messages
 from src.api.routes import background_tasks, get_analyzer_dep
 from src.main import app
 from src.services.store import Store, get_store
@@ -217,3 +217,23 @@ def test_claude_models_use_native_structured_output():
     finally:
         ChatAnthropic.with_structured_output = original
     assert seen == {"method": "json_schema"}
+
+
+async def test_router_sends_short_text_to_light_and_images_to_heavy():
+    used: list = []
+    light = RunnableLambda(lambda _: used.append("light") or SAFE)
+    heavy = RunnableLambda(lambda _: used.append("heavy") or SCAM)
+    router = RoutedAnalyzer(light, heavy, heavy_text_chars=50)
+
+    await router.ainvoke(build_messages("Hôm nay thứ mấy", None, [], "mẹ"))
+    await router.ainvoke(build_messages(None, b"jpeg", [], "mẹ"))
+    await router.ainvoke(build_messages("Có người gọi " * 20, None, [], "mẹ"))
+
+    assert used == ["light", "heavy", "heavy"]
+
+
+async def test_router_without_light_model_always_uses_heavy():
+    used: list = []
+    heavy = RunnableLambda(lambda _: used.append("heavy") or SAFE)
+    await RoutedAnalyzer(None, heavy, heavy_text_chars=50).ainvoke(build_messages("Chào con", None, [], "mẹ"))
+    assert used == ["heavy"]

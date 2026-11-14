@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     llm_max_retries: int = 1
     # Hỏi Con: sau từng này giây model chưa trả lời thì gọi thêm model kế tiếp, lấy câu trả lời đầu tiên.
     llm_stagger_seconds: float = 6.0
+    # Hỏi Con: model cho việc nhẹ (câu hỏi bằng chữ, ngắn). Bỏ trống thì mọi câu đều dùng LLM_MODEL.
+    # Câu có ảnh hoặc dài hơn LLM_HEAVY_TEXT_CHARS ký tự luôn dùng LLM_MODEL (việc nặng).
+    llm_light_model: str = ""
+    llm_heavy_text_chars: int = 300
 
     # Hỏi Con
     db_path: str = "data/hoicon.db"  # tương đối so với thư mục backend
@@ -74,6 +78,12 @@ class Settings(BaseSettings):
     @property
     def llm_api_key(self) -> str:
         return self.api_key_for(self.llm_model)
+
+    @property
+    def light_model(self) -> str | None:
+        """Model việc nhẹ, chỉ khi đã cấu hình và có API key."""
+        name = self.llm_light_model.strip()
+        return name if name and self.api_key_for(name) else None
 
     @property
     def fallback_models(self) -> list[str]:

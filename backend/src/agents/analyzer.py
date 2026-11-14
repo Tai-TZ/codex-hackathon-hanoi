@@ -90,12 +90,42 @@ def structured(llm: BaseChatModel, model: str) -> Runnable:
     return llm.with_structured_output(Analysis)
 
 
-@lru_cache
-def get_analyzer() -> RacingAnalyzer:
-    settings = get_settings()
-    names = [settings.llm_model, *settings.fallback_models]
-    models = [structured(get_llm(settings, name), name) for name in names]
+class RoutedAnalyzer:
+    """Phân việc nhẹ / nặng bằng luật trong code, không tốn thêm một lượt gọi AI:
+    câu có ảnh hoặc câu chữ dài là việc nặng (model mạnh); câu hỏi chữ ngắn là việc nhẹ (model nhanh, rẻ)."""
+
+    def __init__(self, light: Runnable | None, heavy: Runnable, heavy_text_chars: int) -> None:
+        self.light = light
+        self.heavy = heavy
+        self.heavy_text_chars = heavy_text_chars
+
+    def is_heavy(self, messages: list) -> bool:
+        content = messages[-1].content if messages else ""
+        parts = content if isinstance(content, list) else [{"type": "text", "text": content}]
+        if any(part.get("type") == "image_url" for part in parts):
+            return True
+        # Chỉ tính lời người dùng, bỏ phần ngày giờ và lịch sử hội thoại.
+        question = next((p["text"] for p in reversed(parts) if p.get("type") == "text" and " nói: " in p["text"]), "")
+        return len(question) > self.heavy_text_chars
+
+    async def ainvoke(self, messages: list) -> Analysis:
+        heavy = self.light is None or self.is_heavy(messages)
+        logger.info("Phân việc: %s", "nặng" if heavy else "nhẹ")
+        return await (self.heavy if heavy else self.light).ainvoke(messages)
+
+
+def _race(settings, first: str) -> RacingAnalyzer:
+    """Model `first` làm chính, các model còn lại xếp sau làm dự phòng."""
+    names = [first, *(m for m in [settings.llm_model, *settings.fallback_models] if m != first)]
+    models = [structured(get_llm(settings, name), name) for name in dict.fromkeys(names)]
     return RacingAnalyzer(models, settings.llm_stagger_seconds)
+
+
+@lru_cache
+def get_analyzer() -> RoutedAnalyzer:
+    settings = get_settings()
+    light = _race(settings, settings.light_model) if settings.light_model else None
+    return RoutedAnalyzer(light, _race(settings, settings.llm_model), settings.llm_heavy_text_chars)
 
 
 WEEKDAYS = ["thứ Hai", "thứ Ba", "thứ Tư", "thứ Năm", "thứ Sáu", "thứ Bảy", "Chủ nhật"]
