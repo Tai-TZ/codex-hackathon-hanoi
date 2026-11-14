@@ -6,14 +6,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SonAvatar } from '@/components/son-avatar';
 import { BigButton, Card, Txt } from '@/components/ui';
-import { FAMILY_ID } from '@/constants/family';
+import { CHILD_PHONE, FAMILY_ID } from '@/constants/family';
 import { Colors, FontSize, Spacing } from '@/constants/theme';
 import { getReplies } from '@/lib/api';
 import { LAST_REPLY_KEY } from '@/lib/role';
-import { say, stopSpeaking } from '@/lib/speak';
+import { call, say, stopSpeaking } from '@/lib/speak';
 import type { ChildReply } from '@/types/hoicon';
 
 const POLL_MS = 3000;
+// Câu trả lời cũ hơn mức này không đọc to nữa: mẹ sẽ tưởng con vừa nói.
+const FRESH_MS = 10 * 60 * 1000;
 
 function spoken(reply: ChildReply): string {
   return `Con ${reply.from_name} vừa trả lời: ${reply.text}`;
@@ -52,6 +54,9 @@ export function ChildReplyOverlay() {
         if (fresh.length) {
           fresh.sort((a, b) => a.id - b.id);
           lastId = fresh[fresh.length - 1].id;
+          fresh = fresh.filter((r) => Date.now() - Date.parse(r.at) < FRESH_MS);
+        }
+        if (fresh.length) {
           setReply(fresh[fresh.length - 1]);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
           say(fresh.map(spoken).join('. '));
@@ -87,6 +92,7 @@ export function ChildReplyOverlay() {
           “{reply.text}”
         </Txt>
         <BigButton label="Nghe lại" icon="speaker.wave.2.fill" height={84} onPress={() => say(spoken(reply))} />
+        <BigButton label={`Gọi con ${reply.from_name}`} icon="phone.fill" tone="paper" height={76} onPress={() => call(CHILD_PHONE)} />
         <BigButton
           label="Đóng"
           tone="paper"
@@ -108,7 +114,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: Spacing.four,
   },
-  card: { padding: Spacing.four, gap: Spacing.four },
+  card: { padding: Spacing.four, gap: Spacing.three },
   head: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   headText: { flex: 1 },
 });

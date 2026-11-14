@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
-import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { type ComponentRef, useEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { BigButton, Card, Txt } from '@/components/ui';
 import { CHILD_NAME } from '@/constants/family';
@@ -10,8 +10,10 @@ import { say } from '@/lib/speak';
 import type { AskEvent, ConfirmResponse, Prescription } from '@/types/hoicon';
 
 function spokenText(event: AskEvent): string {
-  const parts = [event.title, event.answer];
-  if (event.actions.length) parts.push(`Việc cần làm: ${event.actions.join('. ')}`);
+  // Việc cần làm đọc trước phần giải thích: đó là thứ mẹ cần nghe đầu tiên.
+  const parts = [event.risk === 'red' ? `Mẹ ơi, nguy hiểm. ${event.title}` : event.title];
+  if (event.actions.length) parts.push(`Mẹ nhớ: ${event.actions.join('. ')}`);
+  parts.push(event.answer);
   if (event.family_notified) parts.push(`Con ${CHILD_NAME} đã được báo`);
   return parts.join('. ');
 }
@@ -29,6 +31,14 @@ export function ResultView({
 }) {
   const risk = RiskTheme[event.risk];
   const isRed = event.risk === 'red';
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  const metrics = useRef({ content: 0, viewport: 0, y: 0 });
+  // Còn nội dung bên dưới chưa thấy: hiện nút "Đọc tiếp" vì nhiều người lớn tuổi không biết kéo màn hình.
+  const [hasMore, setHasMore] = useState(false);
+  const refreshMore = () => {
+    const m = metrics.current;
+    setHasMore(m.content - m.viewport - m.y > 24);
+  };
 
   useEffect(() => {
     if (event.risk === 'red') {
@@ -39,53 +49,86 @@ export function ResultView({
 
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Card color={risk.soft} shadow={risk.solid} style={styles.mainCard}>
-          <View style={[styles.badge, { backgroundColor: risk.solid }]}>
-            <Txt size={FontSize.parentBody} weight="bold" color={Colors.white}>
-              {isRed ? '⚠ ' : ''}
-              {risk.label}
-            </Txt>
-          </View>
-          <Txt size={30} weight="bold" color={risk.text}>
-            {event.title}
-          </Txt>
-          <Txt size={FontSize.parentLarge}>{event.answer}</Txt>
-          {event.actions.map((action) => (
-            <View key={action} style={styles.action}>
-              <View style={[styles.dot, { backgroundColor: risk.solid }]} />
-              <Txt size={FontSize.parentLarge} weight="semibold" style={styles.actionText}>
-                {action}
+      <View style={styles.scrollArea}>
+        <ScrollView
+          ref={scroll}
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator
+          scrollEventThrottle={64}
+          onLayout={(e) => {
+            metrics.current.viewport = e.nativeEvent.layout.height;
+            refreshMore();
+          }}
+          onContentSizeChange={(_, height) => {
+            metrics.current.content = height;
+            refreshMore();
+          }}
+          onScroll={(e) => {
+            metrics.current.y = e.nativeEvent.contentOffset.y;
+            refreshMore();
+          }}>
+          <Card color={risk.soft} shadow={risk.solid} style={styles.mainCard}>
+            <View style={[styles.badge, { backgroundColor: risk.solid }]}>
+              <Txt size={FontSize.parentBody} weight="bold" color={Colors.white}>
+                {isRed ? '⚠ ' : ''}
+                {risk.label}
               </Txt>
             </View>
-          ))}
-        </Card>
-
-        {event.family_notified && (
-          <Card color={Colors.primarySoft} shadow={Colors.coral}>
-            <Txt size={FontSize.parentBody} weight="bold" color={Colors.primary}>
-              ✓ Con {CHILD_NAME} đã được báo. Mẹ chờ con trả lời nhé.
+            <Txt size={30} weight="bold" color={risk.text}>
+              {event.title}
             </Txt>
+            {/* Việc cần làm đặt ngay dưới kết luận để không bị khuất. */}
+            {event.actions.map((action) => (
+              <View key={action} style={styles.action}>
+                <View style={[styles.dot, { backgroundColor: risk.solid }]} />
+                <Txt size={FontSize.parentLarge} weight="bold" style={styles.actionText}>
+                  {action}
+                </Txt>
+              </View>
+            ))}
           </Card>
-        )}
 
-        {event.prescription && <PrescriptionBlock eventId={event.id} prescription={event.prescription} />}
-      </ScrollView>
+          {event.family_notified && (
+            <Card color={Colors.primarySoft} shadow={Colors.coral}>
+              <Txt size={FontSize.parentBody} weight="bold" color={Colors.primary}>
+                ✓ Con {CHILD_NAME} đã được báo. Mẹ chờ con trả lời nhé.
+              </Txt>
+            </Card>
+          )}
+
+          <Card>
+            <Txt size={FontSize.parentLarge}>{event.answer}</Txt>
+          </Card>
+
+          {event.prescription && <PrescriptionBlock eventId={event.id} prescription={event.prescription} />}
+        </ScrollView>
+        {hasMore && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Đọc tiếp"
+            style={styles.more}
+            onPress={() => scroll.current?.scrollTo({ y: metrics.current.y + metrics.current.viewport * 0.75, animated: true })}>
+            <Txt size={FontSize.parentBody} weight="bold" color={Colors.white}>
+              ▼ Còn nữa, bấm để đọc tiếp
+            </Txt>
+          </Pressable>
+        )}
+      </View>
 
       <View style={styles.buttons}>
         <BigButton
           label={`Gọi con ${CHILD_NAME}`}
           icon="phone.fill"
           tone={isRed ? 'danger' : 'paper'}
-          height={isRed ? 110 : 76}
+          height={isRed ? 100 : 76}
           fontSize={isRed ? 30 : FontSize.parentBody}
           onPress={onCall}
         />
         <View style={styles.row}>
-          <BigButton label="Nghe lại" icon="speaker.wave.2.fill" tone="paper" height={76} style={styles.half} onPress={() => say(spokenText(event))} />
-          <BigButton label="Hỏi thêm" icon="mic.fill" tone="coral" height={76} style={styles.half} onPress={onAskMore} />
+          <BigButton label="Nghe lại" icon="speaker.wave.2.fill" tone="paper" vertical height={88} fontSize={20} style={styles.third} onPress={() => say(spokenText(event))} />
+          <BigButton label="Hỏi thêm" icon="mic.fill" tone="coral" vertical height={88} fontSize={20} style={styles.third} onPress={onAskMore} />
+          <BigButton label="Xong" icon="checkmark" vertical height={88} fontSize={20} style={styles.third} onPress={onDone} />
         </View>
-        <BigButton label="Xong" height={76} onPress={onDone} />
       </View>
     </View>
   );
@@ -189,8 +232,24 @@ function PrescriptionBlock({ eventId, prescription }: { eventId: string; prescri
 
 const styles = StyleSheet.create({
   root: { flex: 1, gap: Spacing.three },
-  scroll: { gap: Spacing.three, paddingBottom: Spacing.two, paddingRight: Spacing.one },
-  mainCard: { padding: Spacing.four, gap: Spacing.three },
+  scrollArea: { flex: 1 },
+  // Thanh ngang che phần thẻ bị cắt dở, để chữ không chồng lên nhau.
+  more: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    minHeight: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radius.card,
+    borderWidth: 2,
+    borderColor: Colors.text,
+    backgroundColor: Colors.text,
+  },
+  third: { flex: 1 },
+  scroll: { gap: Spacing.three, paddingBottom: Spacing.six, paddingRight: Spacing.one },
+  mainCard: { padding: Spacing.three, gap: Spacing.three },
   badge: { alignSelf: 'flex-start', paddingHorizontal: Spacing.three, paddingVertical: Spacing.one, borderRadius: Radius.pill },
   action: { flexDirection: 'row', gap: Spacing.three, alignItems: 'flex-start' },
   dot: { width: 14, height: 14, borderRadius: 7, marginTop: 11 },

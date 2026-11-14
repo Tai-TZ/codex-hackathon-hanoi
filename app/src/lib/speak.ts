@@ -23,7 +23,7 @@ export function prepareAudio(): void {
 export function say(text: string): void {
   Speech.stop()
     .catch(() => undefined)
-    .then(() => Speech.speak(text, { language: 'vi-VN', rate: 0.92 }));
+    .then(() => Speech.speak(text, { language: 'vi-VN', rate: 0.85 }));
 }
 
 export function stopSpeaking(): void {

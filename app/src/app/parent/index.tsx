@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -32,17 +32,23 @@ export default function ParentScreen() {
   // Giữ thread_id khi bấm "Hỏi thêm" để agent nhớ câu trước.
   const [threadId, setThreadId] = useState<string | null>(null);
 
+  // Mẹ bấm "Thôi, quay lại" khi đang chờ: bỏ qua kết quả của lần hỏi đó nếu nó về sau.
+  const requestId = useRef(0);
+
   const submit = (question: Question, thread: string | null) => {
+    const id = ++requestId.current;
     setStage({ name: 'processing', question });
-    say('Đang xem giúp mẹ, mẹ chờ con một chút nhé.');
+    say('Con đang xem giúp mẹ, mẹ chờ con một chút nhé.');
     ask({ ...question, familyId: FAMILY_ID, threadId: thread })
       .then((event) => {
+        if (id !== requestId.current) return;
         setThreadId(event.thread_id);
         setStage({ name: 'result', event });
       })
       .catch((e: unknown) => {
-        const message = e instanceof Error ? e.message : 'Có trục trặc, mẹ thử lại nhé.';
-        say('Con chưa xem được. Mẹ bấm thử lại nhé.');
+        if (id !== requestId.current) return;
+        const message = e instanceof Error ? e.message : '';
+        say('Con chưa xem được, không phải lỗi của mẹ đâu. Mẹ bấm Thử lại, hoặc gọi con nhé.');
         setStage({ name: 'error', message, question });
       });
   };
@@ -58,6 +64,7 @@ export default function ParentScreen() {
   };
 
   const goHome = () => {
+    requestId.current++;
     stopSpeaking();
     setThreadId(null);
     setStage({ name: 'home' });
@@ -85,7 +92,7 @@ export default function ParentScreen() {
         />
       )}
       {stage.name === 'listen' && <ListenView onSend={(text) => submit({ text }, threadId)} onCancel={goHome} />}
-      {stage.name === 'processing' && <ProcessingView {...stage.question} />}
+      {stage.name === 'processing' && <ProcessingView {...stage.question} onCancel={goHome} onCall={() => call(CHILD_PHONE)} />}
       {stage.name === 'result' && (
         <ResultView
           event={stage.event}
@@ -103,9 +110,15 @@ export default function ParentScreen() {
           <Txt size={FontSize.heading} weight="bold" center>
             Con chưa xem được
           </Txt>
+          {/* Không hiện chữ kỹ thuật cho mẹ: mẹ sẽ tưởng mình làm hỏng máy. */}
           <Txt size={FontSize.parentBody} color={Colors.textMuted} center>
-            {stage.message}
+            Mạng đang trục trặc, không phải lỗi của mẹ đâu. Mẹ bấm Thử lại, hoặc gọi con nhé.
           </Txt>
+          {__DEV__ && !!stage.message && (
+            <Txt size={FontSize.small} color={Colors.textMuted} center>
+              {stage.message}
+            </Txt>
+          )}
           <View style={styles.errorButtons}>
             {stage.question && (
               <BigButton label="Thử lại" icon="arrow.clockwise" height={110} fontSize={30} onPress={() => submit(stage.question!, threadId)} />

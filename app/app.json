@@ -9,7 +9,10 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.taithanh.hackathonhanoi"
+      "bundleIdentifier": "com.taithanh.hackathonhanoi",
+      "infoPlist": {
+        "CFBundleDisplayName": "Hỏi Con"
+      }
     },
     "android": {
       "adaptiveIcon": {

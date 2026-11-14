@@ -45,6 +45,7 @@ export const Spacing = {
 export const FontSize = {
   small: 14,
   body: 17,
+  sub: 19,
   parentBody: 22,
   parentLarge: 26,
   heading: 28,
