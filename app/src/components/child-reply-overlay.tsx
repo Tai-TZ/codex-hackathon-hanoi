@@ -21,6 +21,24 @@ const FRESH_MS = 10 * 60 * 1000;
 const spoken = spokenReply;
 
 /**
+ * Mốc "đã nghe tới đâu" theo giờ con gửi rồi mới tới id. Không dùng riêng id vì backend miễn phí
+ * xoá dữ liệu khi ngủ hoặc deploy lại, id đếm lại từ 1 và máy mẹ sẽ bỏ lỡ câu con vừa trả lời.
+ */
+type Cursor = { at: number; id: number };
+
+const cursorOf = (r: ChildReply): Cursor => ({ at: Date.parse(r.at), id: r.id });
+const after = (a: Cursor, b: Cursor) => a.at > b.at || (a.at === b.at && a.id > b.id);
+
+function readCursor(raw: string | null): Cursor | null {
+  try {
+    const value = raw ? (JSON.parse(raw) as Cursor) : null;
+    return value && Number.isFinite(value.at) && Number.isFinite(value.id) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Hỏi backend vài giây một lần; con vừa trả lời thì hiện thẻ nổi trên mọi màn hình
  * của vai Bố mẹ, rung và đọc to (F29).
  */
@@ -31,37 +49,32 @@ export function ChildReplyOverlay() {
   useEffect(() => {
     let cancelled = false;
     let busy = false;
-    let lastId: number | null = null;
+    let cursor: Cursor | null = null;
 
     async function tick() {
       if (busy || cancelled) return;
       busy = true;
       try {
-        let fresh: ChildReply[];
-        if (lastId === null) {
-          const stored = await AsyncStorage.getItem(LAST_REPLY_KEY);
-          const all = await getReplies(FAMILY_ID, 0);
-          const maxId = all.reduce((max, r) => Math.max(max, r.id), 0);
-          // Lần đầu (hoặc backend vừa xoá dữ liệu): lấy mốc hiện tại, không đọc lại câu cũ.
-          lastId = stored === null || Number(stored) > maxId ? maxId : Number(stored);
-          const baseline = lastId;
-          fresh = all.filter((r) => r.id > baseline);
-        } else {
-          fresh = await getReplies(FAMILY_ID, lastId);
-        }
+        const all = (await getReplies(FAMILY_ID, 0)).sort((a, b) => (after(cursorOf(a), cursorOf(b)) ? 1 : -1));
         if (cancelled) return;
-        if (fresh.length) {
-          fresh.sort((a, b) => a.id - b.id);
-          lastId = fresh[fresh.length - 1].id;
-          fresh = fresh.filter((r) => Date.now() - Date.parse(r.at) < FRESH_MS);
+        if (cursor === null) {
+          // Lần đầu mở app: tiếp từ mốc đã lưu; chưa có thì lấy mốc hiện tại, không đọc lại câu cũ.
+          const latest = all.length ? cursorOf(all[all.length - 1]) : { at: 0, id: 0 };
+          cursor = readCursor(await AsyncStorage.getItem(LAST_REPLY_KEY)) ?? latest;
         }
-        if (fresh.length) {
-          setReply(fresh[fresh.length - 1]);
-          saveLastReply(fresh[fresh.length - 1]);
+        const from = cursor;
+        const fresh = all.filter((r) => after(cursorOf(r), from));
+        if (!fresh.length) return;
+        cursor = cursorOf(fresh[fresh.length - 1]);
+        await AsyncStorage.setItem(LAST_REPLY_KEY, JSON.stringify(cursor));
+        // Câu cũ hơn 10 phút thì chỉ ghi nhận, không đọc to: mẹ sẽ tưởng con vừa nói.
+        const recent = fresh.filter((r) => Date.now() - Date.parse(r.at) < FRESH_MS);
+        if (recent.length) {
+          setReply(recent[recent.length - 1]);
+          saveLastReply(recent[recent.length - 1]);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
-          say(fresh.map(spoken).join('. '));
+          say(recent.map(spoken).join('. '));
         }
-        await AsyncStorage.setItem(LAST_REPLY_KEY, String(lastId));
       } catch {
         // Mất mạng tạm thời: lần hỏi sau thử lại.
       } finally {

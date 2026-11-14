@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Role } from '@/types/hoicon';
 
 const ROLE_KEY = 'hoicon.role';
-export const LAST_REPLY_KEY = 'hoicon.lastReplyId';
+export const LAST_REPLY_KEY = 'hoicon.replyCursor';
 
 export async function getRole(): Promise<Role | null> {
   const value = await AsyncStorage.getItem(ROLE_KEY);
