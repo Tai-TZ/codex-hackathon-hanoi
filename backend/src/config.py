@@ -49,6 +49,11 @@ class Settings(BaseSettings):
     llm_light_model: str = ""
     llm_heavy_text_chars: int = 300
 
+    # Hỏi Con: giọng đọc tự nhiên bằng Gemini TTS (dùng GOOGLE_API_KEY). Bỏ trống TTS_MODEL thì app dùng giọng của máy.
+    tts_model: str = "gemini-3.8-flash-lite-tts"
+    tts_voice: str = "Charon"
+    tts_timeout_seconds: float = 20.0
+
     # Hỏi Con
     db_path: str = "data/hoicon.db"  # tương đối so với thư mục backend
     child_name: str = ""  # tên người con, chỉ lưu kèm câu trả lời; giao diện gọi chung là "con"

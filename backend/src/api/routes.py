@@ -5,7 +5,7 @@ from typing import Annotated
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.runnables import Runnable
 from langgraph.errors import GraphRecursionError
@@ -26,9 +26,12 @@ from src.models.schemas import (
     ReplyOk,
     ReplyRequest,
     ScheduleItem,
+    TtsRequest,
+    TtsResponse,
 )
 from src.services.store import Store, get_store, now_iso
 from src.services.telegram import get_telegram
+from src.services.tts import TtsService, get_tts
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -269,3 +272,28 @@ async def confirm(request: ConfirmRequest, store: Annotated[Store, Depends(get_s
         else:
             schedule.append(ScheduleItem(drug=item["drug"], dose=item["dose"], times=item["times"]))
     return ConfirmResponse(schedule=schedule, needs_child=needs_child)
+
+
+@router.post("/tts", response_model=TtsResponse)
+async def tts(
+    request: TtsRequest,
+    service: Annotated[TtsService, Depends(get_tts)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> TtsResponse:
+    """Tạo giọng đọc tự nhiên cho một câu; trả mã để tải file WAV ở GET /tts/{id}.wav."""
+    if not service.enabled:
+        raise HTTPException(status_code=503, detail="Chưa bật giọng đọc.")
+    try:
+        return TtsResponse(id=await service.synthesize(request.text.strip()))
+    except Exception as e:
+        logger.exception("Tạo giọng đọc lỗi")
+        detail = f"Giọng đọc lỗi: {e}" if settings.app_env == "development" else "Chưa tạo được giọng đọc."
+        raise HTTPException(status_code=502, detail=detail) from e
+
+
+@router.get("/tts/{audio_id}.wav")
+async def tts_audio(audio_id: str, service: Annotated[TtsService, Depends(get_tts)]) -> Response:
+    audio = service.get(audio_id)
+    if audio is None:
+        raise HTTPException(status_code=404, detail="Không tìm thấy giọng đọc.")
+    return Response(content=audio, media_type="audio/wav")

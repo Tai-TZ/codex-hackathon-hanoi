@@ -92,6 +92,14 @@ class ReplyItem(BaseModel):
     at: str
 
 
+class TtsRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=1500)
+
+
+class TtsResponse(BaseModel):
+    id: str
+
+
 class RepliesResponse(BaseModel):
     replies: list[ReplyItem] = Field(default_factory=list)
 

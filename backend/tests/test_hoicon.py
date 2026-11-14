@@ -237,3 +237,49 @@ async def test_router_without_light_model_always_uses_heavy():
     heavy = RunnableLambda(lambda _: used.append("heavy") or SAFE)
     await RoutedAnalyzer(None, heavy, heavy_text_chars=50).ainvoke(build_messages("Chào con", None, [], "mẹ"))
     assert used == ["heavy"]
+
+
+def _fake_gemini_tts(calls: list):
+    import base64
+
+    import httpx
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        if b"loi" in request.content:
+            return httpx.Response(500, json={"error": "quá tải"})
+        pcm = base64.b64encode(b"\x00\x01" * 2400).decode()
+        return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"inlineData": {"data": pcm}}]}}]})
+
+    return httpx.AsyncClient(transport=httpx.MockTransport(handler))
+
+
+async def test_tts_returns_wav_and_reuses_cached_audio(client):
+    from src.services.tts import TtsService, get_tts
+
+    calls: list = []
+    service = TtsService("key", "tts-model", "Charon", 5, client=_fake_gemini_tts(calls))
+    app.dependency_overrides[get_tts] = lambda: service
+
+    first = await client.post("/api/v1/tts", json={"text": "Mẹ ơi, đây là lừa đảo"})
+    again = await client.post("/api/v1/tts", json={"text": "Mẹ ơi, đây là lừa đảo"})
+    assert first.status_code == 200
+    assert again.json() == first.json()
+    assert len(calls) == 1
+    assert calls[0].headers["x-goog-api-key"] == "key"
+
+    audio = await client.get(f"/api/v1/tts/{first.json()['id']}.wav")
+    assert audio.status_code == 200
+    assert audio.headers["content-type"] == "audio/wav"
+    assert audio.content[:4] == b"RIFF"
+    assert (await client.get("/api/v1/tts/khongco.wav")).status_code == 404
+
+
+async def test_tts_reports_failure_so_app_falls_back(client):
+    from src.services.tts import TtsService, get_tts
+
+    app.dependency_overrides[get_tts] = lambda: TtsService("key", "tts-model", "Charon", 5, client=_fake_gemini_tts([]))
+    assert (await client.post("/api/v1/tts", json={"text": "loi"})).status_code == 502
+
+    app.dependency_overrides[get_tts] = lambda: TtsService("", "tts-model", "Charon", 5)
+    assert (await client.post("/api/v1/tts", json={"text": "Chào mẹ"})).status_code == 503
