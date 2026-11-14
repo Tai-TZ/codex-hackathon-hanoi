@@ -21,7 +21,13 @@ const OFFSET = [{ translateX: 1.6 }, { translateY: 1.6 }];
 // Làm mờ rồi ép ngưỡng độ trong suốt: các giọt gần nhau nhập vào nhau, viền vẫn sắc.
 const GOO = [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 22, -10];
 
-const CLIP = Skia.PathBuilder.Make().addCircle(125, 125, 60).build();
+// Không tạo đường vẽ ngay khi nạp file: lúc build Release, Expo nạp file này ở chế độ web
+// khi Skia chưa sẵn sàng. Tạo lần đầu khi vẽ rồi dùng lại.
+let clipPath: ReturnType<typeof Skia.Path.Make> | null = null;
+function getClip() {
+  if (!clipPath) clipPath = Skia.PathBuilder.Make().addCircle(125, 125, 60).build();
+  return clipPath;
+}
 
 // [màu, số giọt, chiều và tốc độ quay, bán kính quỹ đạo, cỡ giọt, độ dày vòng nền]
 const LAYERS = [
@@ -122,7 +128,7 @@ export function SonAvatar({ mood = 'idle', size = 180 }: { mood?: AvatarMood; si
           ))}
 
           <Circle cx={125} cy={125} r={63.5} color={Colors.bg} />
-          <Group clip={CLIP}>
+          <Group clip={getClip()}>
             <Circle cx={125} cy={125} r={60} color={SKIN_BG} />
             <Group transform={[{ translateX: 45 }, { translateY: 47 }]}>
               <Part d="M72 92 L72 110 Q80 116 88 110 L88 92 Z" fill={SKIN} />
