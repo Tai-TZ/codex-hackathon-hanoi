@@ -1,0 +1,31 @@
+# Cấu hình deploy backend lên Render (Blueprint).
+# Trên Render: New → Blueprint → chọn repo này. Các biến "sync: false" là bí mật,
+# Render sẽ hỏi giá trị khi tạo; không ghi giá trị thật vào file này.
+services:
+  - type: web
+    name: hoicon-api
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: LLM_MODEL
+        value: claude-sonnet-5-5
+      - key: LLM_FALLBACK_MODELS
+        value: claude-haiku-5-5,gemini-3.5-flash-lite,gemini-3.1-flash-lite
+      - key: LLM_STAGGER_SECONDS
+        value: "5"
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
