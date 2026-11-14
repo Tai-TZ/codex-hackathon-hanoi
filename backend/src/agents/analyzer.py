@@ -7,8 +7,10 @@ Việc báo cho con là luật cứng viết bằng code ở src/api/routes.py, 
 import asyncio
 import base64
 import logging
+from datetime import datetime
 from functools import lru_cache
 from typing import Literal
+from zoneinfo import ZoneInfo
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import Runnable
@@ -86,8 +88,17 @@ def get_analyzer() -> RacingAnalyzer:
     return RacingAnalyzer(models, settings.llm_stagger_seconds)
 
 
+WEEKDAYS = ["thứ Hai", "thứ Ba", "thứ Tư", "thứ Năm", "thứ Sáu", "thứ Bảy", "Chủ nhật"]
+
+
+def now_vietnam() -> str:
+    """Ngày giờ hiện tại để agent trả lời đúng các câu như 'hôm nay thứ mấy'."""
+    now = datetime.now(ZoneInfo("Asia/Ho_Chi_Minh"))
+    return f"{WEEKDAYS[now.weekday()]}, ngày {now.day}/{now.month}/{now.year}, {now:%H:%M}"
+
+
 def build_messages(text: str | None, image: bytes | None, history: list[dict], parent_title: str) -> list:
-    parts: list[dict] = []
+    parts: list[dict] = [{"type": "text", "text": f"Bây giờ là {now_vietnam()} (giờ Việt Nam)."}]
     if history:
         lines = [
             f"- {parent_title} hỏi: {h.get('question_text') or '(gửi một ảnh)'} -> con trả lời: {h['answer']}"
