@@ -128,6 +128,19 @@ export async function getReplies(familyId: string, after: number): Promise<Child
   return data.replies;
 }
 
+/**
+ * Nhờ backend tạo giọng đọc tự nhiên cho một câu; trả đường dẫn file âm thanh để phát.
+ * Lỗi hoặc quá `timeoutMs` thì ném lỗi để nơi gọi quay về giọng có sẵn của máy.
+ */
+export async function requestSpeech(text: string, timeoutMs: number): Promise<string> {
+  const data = await request<{ id: string }>('/api/v1/tts', timeoutMs, {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ text: text.slice(0, 1500) }),
+  });
+  return `${API_BASE}/api/v1/tts/${data.id}.wav`;
+}
+
 export function confirmPrescription(eventId: string, answers: Record<string, string>): Promise<ConfirmResponse> {
   return request<ConfirmResponse>('/api/v1/confirm', ASK_TIMEOUT_MS, {
     method: 'POST',
