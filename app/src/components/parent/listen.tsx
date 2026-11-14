@@ -5,7 +5,7 @@ import { StyleSheet, TextInput, View } from 'react-native';
 
 import { SonAvatar } from '@/components/son-avatar';
 import { BigButton, Txt } from '@/components/ui';
-import { Colors, Fonts, FontSize, riso, Spacing } from '@/constants/theme';
+import { Colors, Fonts, FontSize, Spacing } from '@/constants/theme';
 import { stopSpeaking } from '@/lib/speak';
 
 // Mẹ nói xong thì tự gửi sau vài giây, không bắt mẹ tìm nút Gửi.
@@ -117,16 +117,12 @@ export function ListenView({ onSend, onCancel }: { onSend: (text: string) => voi
 
   return (
     <View style={styles.root}>
+      {/* Theo bản mẫu: dòng trạng thái nhỏ, nhân vật ở giữa, lời mẹ nói hiện to bên dưới, không khung. */}
       <View style={styles.top}>
-        <SonAvatar size={listening ? 140 : 104} mood={listening ? 'listening' : 'idle'} />
-        <Txt size={FontSize.parentLarge} weight="bold" color={Colors.primary} center>
+        <Txt size={FontSize.parentBody} color={Colors.hint} center>
           {status}
         </Txt>
-        {listening && (
-          <Txt size={FontSize.parentBody} color={Colors.textMuted} center>
-            Mẹ cứ nói. Nói xong con tự xem, không cần bấm gì.
-          </Txt>
-        )}
+        <SonAvatar size={240} mood={listening ? 'listening' : 'idle'} />
       </View>
 
       <TextInput
@@ -141,9 +137,9 @@ export function ListenView({ onSend, onCancel }: { onSend: (text: string) => voi
         }}
         multiline
         maxFontSizeMultiplier={1.15}
-        placeholder="Lời mẹ nói sẽ hiện ở đây…"
-        placeholderTextColor={Colors.textMuted}
-        style={[riso(Colors.teal), styles.transcript]}
+        placeholder={listening ? 'Mẹ cứ nói, nói xong con tự xem…' : 'Mẹ cần hỏi gì cứ nói nhé'}
+        placeholderTextColor={Colors.hint}
+        style={styles.transcript}
       />
 
       <View style={styles.buttons}>
@@ -174,16 +170,16 @@ export function ListenView({ onSend, onCancel }: { onSend: (text: string) => voi
 
 const styles = StyleSheet.create({
   root: { flex: 1, gap: Spacing.three },
-  top: { alignItems: 'center', gap: Spacing.two },
+  top: { alignItems: 'center', gap: Spacing.one },
   transcript: {
     flex: 1,
-    minHeight: 96,
-    backgroundColor: Colors.surface,
-    padding: Spacing.three,
+    minHeight: 90,
+    paddingHorizontal: Spacing.two,
     fontFamily: Fonts.semibold,
     fontSize: FontSize.heading,
     lineHeight: 38,
     color: Colors.text,
+    textAlign: 'center',
     textAlignVertical: 'top',
   },
   buttons: { gap: Spacing.three },

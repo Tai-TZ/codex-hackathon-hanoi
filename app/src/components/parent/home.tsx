@@ -10,6 +10,7 @@ import { say } from '@/lib/speak';
 // Chỉ chào bằng giọng nói một lần mỗi lần mở app, không lặp lại khi quay về màn hình chính.
 let greeted = false;
 
+/** Màn hình chính theo bản mẫu đã chốt: dòng trạng thái nhỏ, nhân vật ở giữa, câu gợi ý nhạt, nút bo tròn. */
 export function ParentHome({
   onCamera,
   onLibrary,
@@ -26,37 +27,30 @@ export function ParentHome({
   useEffect(() => {
     if (greeted) return;
     greeted = true;
-    const timer = setTimeout(() => say(`Chào ${PARENT_NAME}. Mẹ cần hỏi gì, bấm Chụp ảnh hoặc bấm Nói nhé.`), 700);
+    const timer = setTimeout(() => say(`Chào ${PARENT_NAME}. Mẹ cần hỏi gì, cứ bấm nói với con nhé.`), 700);
     return () => clearTimeout(timer);
   }, []);
 
   return (
     <View style={styles.root}>
-      {/* Giữ rất lâu vào lời chào để đổi vai (chỉ dùng khi demo; đủ lâu để mẹ không lỡ tay). */}
-      <Pressable onLongPress={onResetRole} delayLongPress={3000} style={styles.greeting}>
-        <SonAvatar size={112} />
-        <View style={styles.greetingText}>
-          <Txt size={FontSize.heading} weight="bold">
-            Chào {PARENT_NAME}.
-          </Txt>
-          <Txt size={FontSize.parentBody} color={Colors.textMuted}>
-            Mẹ cần hỏi gì, cứ chụp hoặc nói nhé.
-          </Txt>
-        </View>
+      {/* Giữ rất lâu vào nhân vật để đổi vai (chỉ dùng khi demo; đủ lâu để mẹ không lỡ tay). */}
+      <Pressable onLongPress={onResetRole} delayLongPress={3000} style={styles.top}>
+        <Txt size={FontSize.parentBody} color={Colors.hint} center>
+          Bấm nói, con nghe
+        </Txt>
+        <SonAvatar size={260} />
+        <Txt size={FontSize.heading} weight="semibold" color={Colors.hint} center>
+          Mẹ cần hỏi gì cứ nói nhé
+        </Txt>
       </Pressable>
 
       <View style={styles.buttons}>
-        <BigButton
-          label="Chụp ảnh"
-          sub="tin nhắn lạ, đơn thuốc, giấy tờ"
-          icon="camera.fill"
-          height={132}
-          fontSize={34}
-          onPress={onCamera}
-        />
-        <BigButton label="Nói" sub="hỏi con bằng lời" icon="mic.fill" tone="coral" height={112} fontSize={34} onPress={onSpeak} />
-        <BigButton label={`Gọi con ${CHILD_NAME}`} icon="phone.fill" tone="paper" height={88} fontSize={FontSize.parentLarge} onPress={onCall} />
-        <BigButton label="Ảnh có sẵn trong máy" icon="photo.fill" tone="paper" height={72} onPress={onLibrary} />
+        <BigButton label="Nói với con" icon="mic.fill" height={84} fontSize={28} onPress={onSpeak} />
+        <BigButton label="Chụp ảnh cho con xem" icon="camera.fill" tone="soft" height={76} fontSize={24} onPress={onCamera} />
+        <View style={styles.row}>
+          <BigButton label={`Gọi con ${CHILD_NAME}`} icon="phone.fill" tone="paper" height={64} fontSize={20} style={styles.half} onPress={onCall} />
+          <BigButton label="Ảnh có sẵn" icon="photo.fill" tone="paper" height={64} fontSize={20} style={styles.half} onPress={onLibrary} />
+        </View>
       </View>
     </View>
   );
@@ -64,7 +58,8 @@ export function ParentHome({
 
 const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: 'space-between', paddingBottom: Spacing.two },
-  greeting: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
-  greetingText: { flex: 1, gap: Spacing.one },
+  top: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.two },
   buttons: { gap: Spacing.three },
+  row: { flexDirection: 'row', gap: Spacing.three },
+  half: { flex: 1 },
 });

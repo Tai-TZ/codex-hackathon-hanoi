@@ -23,6 +23,8 @@ export const Colors = {
   safeSoft: '#E1F3EA',
   safeText: '#0B4F4B',
   white: '#FFFFFF',
+  hint: '#8E8780',
+  line: '#D9D3C8',
   overlay: 'rgba(29, 43, 58, 0.55)',
 } as const;
 
@@ -52,18 +54,14 @@ export const FontSize = {
   title: 36,
 } as const;
 
-export const Radius = { card: 20, button: 22, pill: 999 } as const;
+export const Radius = { card: 28, button: 999, pill: 999 } as const;
 
-/** Viền mực + bóng cứng lệch 3px, không mờ (kiểu in riso). */
-export function riso(shadowColor: string = Colors.primary): ViewStyle {
+/** Khung mềm theo bản mẫu đã chốt: viền mảnh màu giấy sẫm, bo tròn, không bóng. Tham số giữ lại cho tương thích. */
+export function riso(_accent: string = Colors.primary): ViewStyle {
   return {
-    borderWidth: 2,
-    borderColor: Colors.text,
+    borderWidth: 1.5,
+    borderColor: Colors.line,
     borderRadius: Radius.card,
-    shadowColor,
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
   };
 }
 

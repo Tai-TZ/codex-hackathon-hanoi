@@ -29,13 +29,14 @@ export function Txt({
   );
 }
 
-type Tone = 'primary' | 'danger' | 'paper' | 'coral';
-
-const TONES: Record<Tone, { bg: string; fg: string; shadow: string }> = {
-  primary: { bg: Colors.primary, fg: Colors.white, shadow: Colors.coral },
-  danger: { bg: Colors.danger, fg: Colors.white, shadow: Colors.text },
-  paper: { bg: Colors.surface, fg: Colors.text, shadow: Colors.primary },
-  coral: { bg: Colors.coral, fg: Colors.text, shadow: Colors.primary },
+type Tone = 'primary' | 'danger' | 'paper' | 'coral' | 'soft';
+// Nút bo tròn hẳn, màu phẳng, không viền đen và không bóng (theo bản mẫu đã chốt).
+const TONES: Record<Tone, { bg: string; fg: string; border: string }> = {
+  primary: { bg: Colors.primary, fg: Colors.white, border: Colors.primary },
+  danger: { bg: Colors.danger, fg: Colors.white, border: Colors.danger },
+  paper: { bg: Colors.surface, fg: Colors.text, border: Colors.line },
+  coral: { bg: Colors.coral, fg: Colors.text, border: Colors.coral },
+  soft: { bg: Colors.primarySoft, fg: Colors.primary, border: Colors.primarySoft },
 };
 
 // Người run tay hay chạm hai lần liền nhau: bỏ qua lần chạm thứ hai trong khoảng này.
@@ -83,17 +84,16 @@ export function BigButton({
       disabled={disabled}
       onPress={press}
       style={({ pressed }) => [
-        riso(t.shadow),
         styles.button,
         vertical && styles.vertical,
-        { backgroundColor: t.bg, minHeight: height },
+        { backgroundColor: t.bg, borderColor: t.border, minHeight: height },
         pressed && styles.pressed,
         disabled && styles.disabled,
         style,
       ]}>
       {icon && <SymbolView name={icon} size={Math.round(fontSize * 1.3)} tintColor={t.fg} />}
       <View style={styles.buttonText}>
-        <Txt size={fontSize} weight="bold" color={t.fg} center={vertical || !sub} numberOfLines={vertical ? 1 : 2} adjustsFontSizeToFit={vertical}>
+        <Txt size={fontSize} weight="bold" color={t.fg} center={vertical || !sub} numberOfLines={sub ? 2 : 1} adjustsFontSizeToFit={!sub} minimumFontScale={0.75}>
           {label}
         </Txt>
         {!!sub && (
@@ -124,17 +124,18 @@ const styles = StyleSheet.create({
   center: { textAlign: 'center' },
   button: {
     borderRadius: Radius.button,
+    borderWidth: 1.5,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.three,
-    paddingHorizontal: Spacing.four,
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
   },
-  vertical: { flexDirection: 'column', gap: Spacing.one, paddingHorizontal: Spacing.two },
+  vertical: { flexDirection: 'column', gap: Spacing.one, paddingHorizontal: Spacing.two, borderRadius: Radius.card },
   buttonText: { flexShrink: 1 },
   sub: { opacity: 0.92 },
-  pressed: { transform: [{ translateX: 3 }, { translateY: 3 }], shadowOffset: { width: 0, height: 0 }, opacity: 0.85 },
-  disabled: { opacity: 0.5 },
+  pressed: { transform: [{ scale: 0.97 }], opacity: 0.85 },
+  disabled: { opacity: 0.45 },
   card: { padding: Spacing.three, gap: Spacing.two },
 });
