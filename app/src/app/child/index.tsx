@@ -15,7 +15,7 @@ import { call } from '@/lib/speak';
 import type { AskEvent } from '@/types/hoicon';
 
 const POLL_MS = 4000;
-const QUICK_REPLIES = ['Con ổn, mẹ đừng chuyển tiền', 'Mẹ chờ con gọi ngay'];
+const QUICK_REPLIES = ['Con ổn, mẹ đừng chuyển tiền', 'Mẹ chờ chút, con gọi ngay'];
 const KIND_LABEL: Record<AskEvent['kind'], string> = {
   scam: 'Lừa đảo',
   prescription: 'Đơn thuốc',

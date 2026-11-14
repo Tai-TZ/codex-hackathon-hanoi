@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # callback_data của Telegram tối đa 64 byte nên chỉ gửi khoá ngắn, nội dung câu tra theo bảng này.
 REPLY_OPTIONS: dict[str, str] = {
     "safe": "Con ổn, mẹ đừng chuyển tiền",
-    "call": "Mẹ chờ con gọi ngay",
+    "call": "Mẹ chờ chút, con gọi ngay",
     "ok": "Việc này không sao đâu mẹ",
 }
 
