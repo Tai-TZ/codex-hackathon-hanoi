@@ -37,6 +37,21 @@ class Settings(BaseSettings):
     # Để ngắn: model chính treo thì chuyển sang model dự phòng nhanh.
     llm_timeout_seconds: float = 25.0
     llm_max_retries: int = 1
+    # Hỏi Con: sau từng này giây model chưa trả lời thì gọi thêm model kế tiếp, lấy câu trả lời đầu tiên.
+    llm_stagger_seconds: float = 6.0
+
+    # Hỏi Con
+    db_path: str = "data/hoicon.db"  # tương đối so với thư mục backend
+    child_name: str = "Tiển"
+    parent_title: str = "mẹ"
+
+    # Telegram: bot báo cho người con. TELEGRAM_CHAT_ID có thể là nhiều ID cách nhau bằng dấu phẩy.
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
+
+    @property
+    def telegram_chat_ids(self) -> list[int]:
+        return [int(x) for x in (c.strip() for c in self.telegram_chat_id.split(",")) if x.lstrip("-").isdigit()]
 
     def api_key_for(self, model: str) -> str:
         return self.google_api_key if provider_for(model) == "google" else self.openai_api_key
