@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { LoadingScreen } from '@/components/loading';
 import { SonAvatar } from '@/components/son-avatar';
 import { BigButton, Txt } from '@/components/ui';
 import { Colors, FontSize, Spacing } from '@/constants/theme';
@@ -19,7 +20,7 @@ export default function RolePicker() {
       .catch(() => setRoleState(null));
   }, []);
 
-  if (role === 'loading') return <View style={styles.screen} />;
+  if (role === 'loading') return <LoadingScreen />;
   if (role === 'parent') return <Redirect href="/parent" />;
   if (role === 'child') return <Redirect href="/child" />;
 

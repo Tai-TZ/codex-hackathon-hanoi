@@ -1,10 +1,12 @@
+import { SymbolView } from 'expo-symbols';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { SonAvatar } from '@/components/son-avatar';
-import { BigButton, Txt } from '@/components/ui';
+import { BigButton, Card, Txt } from '@/components/ui';
 import { PARENT_NAME } from '@/constants/family';
 import { Colors, FontSize, Spacing } from '@/constants/theme';
+import { spokenReply, useLastReply } from '@/lib/last-reply';
 import { say } from '@/lib/speak';
 
 // Chỉ chào bằng giọng nói một lần mỗi lần mở app, không lặp lại khi quay về màn hình chính.
@@ -24,6 +26,8 @@ export function ParentHome({
   onCall: () => void;
   onResetRole: () => void;
 }) {
+  const lastReply = useLastReply();
+
   useEffect(() => {
     if (greeted) return;
     greeted = true;
@@ -39,9 +43,33 @@ export function ParentHome({
           Bấm nói, con nghe
         </Txt>
         <SonAvatar size={260} />
-        <Txt size={FontSize.heading} weight="semibold" color={Colors.hint} center>
-          Mẹ cần hỏi gì cứ nói nhé
-        </Txt>
+        {lastReply ? (
+          // Lời con nhắn gần nhất: mẹ lỡ đóng thẻ hoặc chưa nghe kịp vẫn xem lại được.
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${spokenReply(lastReply)}. Bấm để nghe lại`}
+            onPress={() => say(spokenReply(lastReply))}
+            style={styles.replyPress}>
+            <Card color={Colors.primarySoft} style={styles.replyCard}>
+              <Txt size={FontSize.parentBody} weight="bold" color={Colors.primary}>
+                Con nhắn mẹ lúc {formatTime(lastReply.at)}:
+              </Txt>
+              <Txt size={FontSize.parentLarge} weight="bold" numberOfLines={3}>
+                “{lastReply.text}”
+              </Txt>
+              <View style={styles.replyHint}>
+                <SymbolView name="speaker.wave.2.fill" size={22} tintColor={Colors.primary} />
+                <Txt size={FontSize.sub} weight="semibold" color={Colors.primary}>
+                  Bấm vào đây để nghe lại
+                </Txt>
+              </View>
+            </Card>
+          </Pressable>
+        ) : (
+          <Txt size={FontSize.heading} weight="semibold" color={Colors.hint} center>
+            Mẹ cần hỏi gì cứ nói nhé
+          </Txt>
+        )}
       </Pressable>
 
       <View style={styles.buttons}>
@@ -56,7 +84,15 @@ export function ParentHome({
   );
 }
 
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getHours()} giờ ${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 const styles = StyleSheet.create({
+  replyPress: { alignSelf: 'stretch' },
+  replyCard: { padding: Spacing.three, gap: Spacing.one },
+  replyHint: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   root: { flex: 1, justifyContent: 'space-between', paddingBottom: Spacing.two },
   top: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.two },
   buttons: { gap: Spacing.three },

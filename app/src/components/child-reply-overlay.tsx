@@ -9,6 +9,7 @@ import { BigButton, Card, Txt } from '@/components/ui';
 import { CHILD_PHONE, FAMILY_ID } from '@/constants/family';
 import { Colors, FontSize, Spacing } from '@/constants/theme';
 import { getReplies } from '@/lib/api';
+import { saveLastReply, spokenReply } from '@/lib/last-reply';
 import { LAST_REPLY_KEY } from '@/lib/role';
 import { call, say, stopSpeaking } from '@/lib/speak';
 import type { ChildReply } from '@/types/hoicon';
@@ -17,9 +18,7 @@ const POLL_MS = 3000;
 // Câu trả lời cũ hơn mức này không đọc to nữa: mẹ sẽ tưởng con vừa nói.
 const FRESH_MS = 10 * 60 * 1000;
 
-function spoken(reply: ChildReply): string {
-  return `Con vừa trả lời: ${reply.text}`;
-}
+const spoken = spokenReply;
 
 /**
  * Hỏi backend vài giây một lần; con vừa trả lời thì hiện thẻ nổi trên mọi màn hình
@@ -58,6 +57,7 @@ export function ChildReplyOverlay() {
         }
         if (fresh.length) {
           setReply(fresh[fresh.length - 1]);
+          saveLastReply(fresh[fresh.length - 1]);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
           say(fresh.map(spoken).join('. '));
         }

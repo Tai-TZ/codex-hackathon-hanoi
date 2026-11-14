@@ -15,5 +15,5 @@ export function setRole(role: Role): Promise<void> {
 }
 
 export function clearRole(): Promise<void> {
-  return AsyncStorage.multiRemove([ROLE_KEY, LAST_REPLY_KEY]);
+  return AsyncStorage.multiRemove([ROLE_KEY, LAST_REPLY_KEY, 'hoicon.lastReply']);
 }

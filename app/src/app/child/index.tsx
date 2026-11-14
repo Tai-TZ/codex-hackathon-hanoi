@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { LoadingDots } from '@/components/loading';
 import { BigButton, Card, Txt } from '@/components/ui';
 import { CHILD_NAME, FAMILY_ID, PARENT_NAME, PARENT_PHONE } from '@/constants/family';
 import { Colors, FontSize, Radius, RiskTheme, Spacing } from '@/constants/theme';
@@ -119,7 +120,12 @@ export default function ChildScreen() {
       )}
 
       <ScrollView contentContainerStyle={styles.list}>
-        {events === null && !error && <Txt color={Colors.textMuted}>Đang tải…</Txt>}
+        {events === null && !error && (
+          <View style={styles.loading}>
+            <LoadingDots />
+            <Txt color={Colors.textMuted}>Đang lấy tin của mẹ…</Txt>
+          </View>
+        )}
         {events !== null && shown.length === 0 && (
           <Card>
             <Txt weight="bold">{tab === 'urgent' ? 'Chưa có cảnh báo nào' : 'Mẹ chưa hỏi gì'}</Txt>
@@ -232,6 +238,7 @@ function EventCard({
 }
 
 const styles = StyleSheet.create({
+  loading: { alignItems: 'center', gap: Spacing.two, paddingVertical: Spacing.five },
   screen: { flex: 1, backgroundColor: Colors.bg, paddingHorizontal: Spacing.three },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: Spacing.two },
   tabs: { flexDirection: 'row', gap: Spacing.two, marginVertical: Spacing.two },

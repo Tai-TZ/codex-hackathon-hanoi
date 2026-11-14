@@ -107,7 +107,16 @@ export function ResultView({
             accessibilityLabel="Đọc tiếp"
             style={styles.more}
             onPress={() => scroll.current?.scrollTo({ y: metrics.current.y + metrics.current.viewport * 0.75, animated: true })}>
-            <Txt size={FontSize.parentBody} weight="bold" color={Colors.white}>
+            {/* Một dòng, tự thu nhỏ khi máy để cỡ chữ lớn để không bị xuống dòng lệch mép. */}
+            <Txt
+              size={FontSize.parentBody}
+              weight="bold"
+              color={Colors.white}
+              center
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+              style={styles.moreLabel}>
               ▼ Còn nữa, bấm để đọc tiếp
             </Txt>
           </Pressable>
@@ -246,6 +255,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.text,
     backgroundColor: Colors.text,
   },
+  moreLabel: { alignSelf: 'stretch', paddingHorizontal: Spacing.three },
   third: { flex: 1 },
   scroll: { gap: Spacing.three, paddingBottom: Spacing.six, paddingRight: Spacing.one },
   mainCard: { padding: Spacing.three, gap: Spacing.three },

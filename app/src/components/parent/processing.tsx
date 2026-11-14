@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { LoadingDots } from '@/components/loading';
 import { SonAvatar } from '@/components/son-avatar';
 import { BigButton, Txt } from '@/components/ui';
 import { Colors, FontSize, riso, Spacing } from '@/constants/theme';
@@ -48,8 +49,9 @@ export function ProcessingView({
         )}
         <SonAvatar size={130} mood="thinking" />
         <Txt size={FontSize.heading} weight="bold" color={Colors.primary} center>
-          Con đang xem giúp mẹ…
+          Con đang xem giúp mẹ
         </Txt>
+        <LoadingDots size={14} />
         <Txt size={FontSize.parentBody} color={Colors.textMuted} center>
           {slow ? 'Mạng hơi chậm, mẹ chờ thêm chút nhé.' : 'Mẹ chờ con một chút, không cần bấm gì.'}
         </Txt>
